@@ -4,6 +4,11 @@
  */
 require("dotenv").config();
 
+const IS_VERCEL =
+  !!process.env.VERCEL &&
+  process.env.VERCEL !== "false" &&
+  process.env.VERCEL !== "0";
+
 const MS_PATIENT_EHR_CONFIG = {
   DATABASE_URL_POSTGRES: process.env.DATABASE_URL_POSTGRESQL || "",
   DATABASE_URL_MONGO: process.env.DATABASE_URL_MONGO || "",
@@ -13,6 +18,7 @@ const MS_PATIENT_EHR_CONFIG = {
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
   MS_SECURITY: process.env.MS_SECURITY,
+  VERCEL: IS_VERCEL,
 };
 
 module.exports = { MS_PATIENT_EHR_CONFIG };

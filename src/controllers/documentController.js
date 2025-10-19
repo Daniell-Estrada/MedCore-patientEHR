@@ -70,7 +70,10 @@ const downloadDocument = async (req, res) => {
     if (!document) {
       return res.status(404).json({ message: "Documento no encontrado" });
     }
-    res.download(document.filePath, document.filename);
+    if (/^https?:\/\//i.test(document.filePath)) {
+      return res.redirect(302, document.filePath);
+    }
+    return res.download(document.filePath, document.filename);
   } catch (error) {
     return res.status(500).json({ message: "Error interno del servidor" });
   }

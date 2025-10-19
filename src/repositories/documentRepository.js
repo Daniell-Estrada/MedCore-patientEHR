@@ -1,5 +1,11 @@
 const prisma = require("../config/db/postgresql");
 const fs = require("fs").promises;
+const path = require("path");
+const {
+  upload: storageUpload,
+  remove: storageRemove,
+} = require("../services/storageService");
+const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
 
 /**
  * Repository for managing diagnostic documents.
@@ -30,29 +36,53 @@ class DocumentRepository {
       throw new Error("Se requiere al menos un archivo");
     }
 
-    const records = files.map((file) => ({
+    const prepared = [];
+    for (const f of files) {
+      const buffer = f.buffer ? f.buffer : await fs.readFile(f.path);
+      const safeFilename =
+        f.filename ||
+        `diagnostic-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(f.originalname)}`;
+
+      const uploaded = await storageUpload({
+        buffer,
+        originalname: f.originalname,
+        filename: safeFilename,
+        mimetype: f.mimetype,
+      });
+
+      prepared.push({ f, uploaded });
+    }
+
+    const records = prepared.map(({ f, uploaded }) => ({
       diagnosticId: diagnostic.id,
-      filename: file.originalname,
-      storedFilename: file.filename,
-      filePath: file.path,
-      fileType: (file.originalname.split(".").pop() || "").toLowerCase(),
-      mimeType: file.mimetype,
-      fileSize: file.size,
+      filename: f.originalname,
+      storedFilename:
+        uploaded.storedKey || f.filename || path.basename(uploaded.filePath),
+      filePath: uploaded.filePath,
+      fileType: (f.originalname.split(".").pop() || "").toLowerCase(),
+      mimeType: f.mimetype,
+      fileSize: f.size,
       description: null,
       uploadedBy,
     }));
 
-    await prisma.DiagnosticDocument.createMany({
-      data: records,
-    });
+    await prisma.DiagnosticDocument.createMany({ data: records });
 
     const docs = await prisma.DiagnosticDocument.findMany({
       where: {
         diagnosticId: diagnostic.id,
-        storedFilename: { in: files.map((f) => f.filename) },
+        storedFilename: { in: records.map((r) => r.storedFilename) },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    for (const f of files) {
+      if (f.path && !MS_PATIENT_EHR_CONFIG.VERCEL) {
+        try {
+          await fs.unlink(f.path);
+        } catch (_) {}
+      }
+    }
     return docs;
   }
 
@@ -76,9 +106,11 @@ class DocumentRepository {
     const doc = await prisma.DiagnosticDocument.findUnique({ where: { id } });
     if (!doc) return false;
     await prisma.DiagnosticDocument.delete({ where: { id } });
-    try {
-      await fs.unlink(doc.filePath);
-    } catch (_) {}
+
+    await storageRemove({
+      storedKey: doc.storedFilename,
+      filePath: doc.filePath,
+    });
     return true;
   }
 
@@ -86,7 +118,7 @@ class DocumentRepository {
     if (!files?.length) return;
     for (const f of files) {
       try {
-        await fs.unlink(f.path);
+        if (f.path) await fs.unlink(f.path);
       } catch (_) {}
     }
   }
