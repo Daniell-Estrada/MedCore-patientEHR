@@ -7,4 +7,14 @@ services:
       target: production
     ports:
       - "3003:3003"
+    expose:
+      - "3003"
+    networks:
+      medcore-network:
+        aliases:
+          - ms-patient-ehr
     restart: unless-stopped
+
+networks:
+  medcore-network:
+    external: true

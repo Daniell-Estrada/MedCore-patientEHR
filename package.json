@@ -11,8 +11,8 @@
     "prisma:gen:mongodb": "npx prisma generate --schema=./prisma/mongodb/schema.prisma",
     "prisma:migrate:postgresql": "npx prisma migrate dev --schema=./prisma/postgresql/schema.prisma",
     "prisma:migrate:mongodb": "npx prisma db push --schema=./prisma/mongodb/schema.prisma",
-    "docker:build": "docker build -t ms-patient-ehr:latest . ",
-    "docker:run": "docker run -p 3003:3003 ms-patient-ehr:latest"
+    "docker:build": "docker compose build",
+    "docker:run": "docker compose up -d --remove-orphans"
   },
   "keywords": [],
   "author": "",
