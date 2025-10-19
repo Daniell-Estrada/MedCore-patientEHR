@@ -39,14 +39,16 @@ class DocumentRepository {
     const prepared = [];
     for (const f of files) {
       const buffer = f.buffer ? f.buffer : await fs.readFile(f.path);
-      const safeFilename =
-        f.filename ||
-        `diagnostic-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(f.originalname)}`;
+      const timestamp = Date.now();
+      const randomString = Math.round(Math.random() * 1e9);
+      const ext = path.extname(f.originalname);
+
+      const filename = `diagnostic-${patientId}-${timestamp}-${randomString}${ext}`;
 
       const uploaded = await storageUpload({
         buffer,
         originalname: f.originalname,
-        filename: safeFilename,
+        filename,
         mimetype: f.mimetype,
       });
 
