@@ -9,16 +9,12 @@ async function AdminMiddleware(req, res, next) {
       return res.status(401).json({ message: "No autenticado" });
     }
 
-    const userData = await securityService.getUserById(
-      req.user.id,
-      req.user.token,
-    );
+    const userData = await securityService.getUserById(req.user.id);
     req.securityUser = userData;
 
     const isAdmin = await securityService.validateUserRole(
       req.user.id,
       "ADMINISTRADOR",
-      req.user.token,
     );
     if (!isAdmin) {
       return res
@@ -28,7 +24,6 @@ async function AdminMiddleware(req, res, next) {
 
     next();
   } catch (error) {
-    console.error("Error en AdminMiddleware:", error);
     return res
       .status(500)
       .json({ message: "Error validando permisos de administrador" });

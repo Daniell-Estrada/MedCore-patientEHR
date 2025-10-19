@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
+const { setToken, setUser } = require("./requestContext");
 
 /**
  * Middleware to authenticate requests using JWT tokens.
@@ -18,10 +19,10 @@ function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, MS_PATIENT_EHR_CONFIG.JWT_SECRET);
-    req.user = {
-      token: token,
-      ...decoded,
-    };
+    const user = { token, ...decoded };
+    req.user = user;
+    setToken(token);
+    setUser(decoded);
     next();
   } catch (err) {
     return res.status(401).json({ message: "Token inválido o expirado" });

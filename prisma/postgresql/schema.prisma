@@ -14,11 +14,64 @@ datasource db {
   url      = env("DATABASE_URL_POSTGRESQL")
 }
 
+enum DiagnosticState {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
 model Patient {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  fullName    String?
-  userSnapshot Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  docuementNumber String    @unique
+  birthDate       DateTime
+  age             Int
+  gender          String
+  phone           String?
+  address         String?
+  state           String?
+  diagnostics     Diagnostic[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Diagnostic {
+  id              String   @id @default(uuid())
+  patientId       String
+  doctorId        String
+  title           String
+  description     String
+  symptoms        String
+  diagnosis       String
+  treatment       String
+  observations    String?
+  date            DateTime @default(now())
+  nextAppointment DateTime?
+  state           DiagnosticState @default(ACTIVE)
+  documents       DiagnosticDocument[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+}
+
+model DiagnosticDocument {
+  id              String   @id @default(uuid())
+  diagnosticId    String
+  filename        String
+  storedFilename  String
+  filePath        String
+  fileType        String
+  mimeType        String
+  fileSize        Int
+  description     String?
+  uploadedBy      String
+  createdAt       DateTime @default(now())
+
+  diagnostic Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
+
+  @@index([diagnosticId])
 }

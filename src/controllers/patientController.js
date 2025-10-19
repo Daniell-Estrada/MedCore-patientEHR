@@ -10,7 +10,6 @@ const getAllPatients = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const patientsFromSecurity = await securityService.getAllPatients(
-      req.user.token,
       page,
       limit,
     );
@@ -55,10 +54,7 @@ const getAllPatients = async (req, res) => {
 const getPatientById = async (req, res) => {
   try {
     const { id } = req.params;
-    const patientFromSecurity = await securityService.getUserById(
-      id,
-      req.user.token,
-    );
+    const patientFromSecurity = await securityService.getUserById(id);
 
     if (!patientFromSecurity || patientFromSecurity.role !== "PACIENTE") {
       return res.status(404).json({ message: "Paciente no encontrado" });

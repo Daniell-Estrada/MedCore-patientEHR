@@ -6,13 +6,17 @@ const {
   updatePatient,
   updatePatientState,
 } = require("../controllers/patientController");
-const AdminMiddleware = require("../middleware/adminMiddleware");
+const { createDiagnostic } = require("../controllers/diagnosticController");
+// const AdminMiddleware = require("../middleware/adminMiddleware");
+const { uploadMultiple } = require("../config/multer");
 
-router.use(AdminMiddleware);
+// router.use(AdminMiddleware);
 
 router.get("/", getAllPatients);
 router.get("/:id", getPatientById);
 router.put("/:id", updatePatient);
 router.patch("/state/:id", updatePatientState);
+
+router.post("/:patientId/diagnostics", uploadMultiple, createDiagnostic);
 
 module.exports = router;

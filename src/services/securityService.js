@@ -1,17 +1,19 @@
 const axios = require("axios");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
+const { getAuthHeader } = require("../middleware/requestContext");
 
 /**
  * Service to interact with the ms-security microservice for user management.
  * It provides functions to get user details, validate user roles, fetch all patients, and create new users.
  */
 const securityService = {
-  async getUserById(userId, token) {
+  async getUserById(userId) {
     try {
+      const headers = getAuthHeader();
       const res = await axios.get(
         `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         },
       );
       return res.data;
@@ -20,26 +22,29 @@ const securityService = {
     }
   },
 
-  async validateUserRole(userId, role, token) {
+  async validateUserRole(userId, role) {
     try {
+      const headers = getAuthHeader();
       const res = await axios.get(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}/roles`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         },
       );
-      return res.data.includes(role);
+
+      return res.data.role === role;
     } catch (err) {
       throw err;
     }
   },
 
-  async getAllPatients(token, page = 1, limit = 10) {
+  async getAllPatients(page = 1, limit = 10) {
     try {
+      const headers = getAuthHeader();
       const res = await axios.get(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
           params: { role: "PACIENTE", page, limit },
         },
       );
@@ -49,13 +54,14 @@ const securityService = {
     }
   },
 
-  async createUser(userData, token) {
+  async createUser(userData) {
     try {
+      const headers = getAuthHeader();
       const res = await axios.post(
         `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users`,
         userData,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         },
       );
       return res.data;
