@@ -8,17 +8,40 @@ const {
   advancedSearchPatients,
 } = require("../controllers/patientController");
 const { createDiagnostic } = require("../controllers/diagnosticController");
-// const AdminMiddleware = require("../middleware/adminMiddleware");
+const AdminMiddleware = require("../middleware/adminMiddleware");
+const { requireRoles } = require("../middleware/roleMiddleware");
+const {
+  updatePatientValidators,
+  createDiagnosticValidators,
+  advancedSearchQueryValidators,
+} = require("../middleware/validationMiddleware");
 const { uploadMultiple } = require("../config/multer");
 
-// router.use(AdminMiddleware);
+router.get(
+  "/",
+  requireRoles(["ADMINISTRADOR", "MEDICO", "ENFERMERO"]),
+  getAllPatients,
+);
+router.get(
+  "/search/advanced",
+  requireRoles(["ADMINISTRADOR", "MEDICO", "ENFERMERO"]),
+  advancedSearchQueryValidators,
+  advancedSearchPatients,
+);
+router.get(
+  "/:id",
+  requireRoles(["ADMINISTRADOR", "MEDICO", "ENFERMERO", "PACIENTE"]),
+  getPatientById,
+);
+router.put("/:id", AdminMiddleware, updatePatientValidators, updatePatient);
+router.patch("/state/:id", AdminMiddleware, updatePatientState);
 
-router.get("/", getAllPatients);
-router.get("/search/advanced", advancedSearchPatients);
-router.get("/:id", getPatientById);
-router.put("/:id", updatePatient);
-router.patch("/state/:id", updatePatientState);
-
-router.post("/:patientId/diagnostics", uploadMultiple, createDiagnostic);
+router.post(
+  "/:patientId/diagnostics",
+  requireRoles(["MEDICO"]),
+  uploadMultiple,
+  createDiagnosticValidators,
+  createDiagnostic,
+);
 
 module.exports = router;

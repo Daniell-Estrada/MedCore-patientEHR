@@ -69,6 +69,34 @@ const securityService = {
       throw err;
     }
   },
+
+  async updateUser(userId, userData) {
+    try {
+      const headers = getAuthHeader();
+      const res = await axios.put(
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}`,
+        userData,
+        { headers },
+      );
+      return res.data;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  async updateUserState(userId, status) {
+    try {
+      const headers = getAuthHeader();
+      const res = await axios.patch(
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/state/${userId}`,
+        { status },
+        { headers },
+      );
+      return res.data;
+    } catch (err) {
+      throw err;
+    }
+  },
 };
 
 module.exports = securityService;

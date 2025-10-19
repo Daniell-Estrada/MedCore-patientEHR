@@ -23,7 +23,7 @@ enum DiagnosticState {
 model Patient {
   id              String    @id @default(uuid())
   userId          String    @unique
-  docuementNumber String    @unique
+  documentNumber  String    @unique
   birthDate       DateTime
   age             Int
   gender          String
@@ -56,20 +56,21 @@ model Diagnostic {
 
   @@index([patientId])
   @@index([doctorId])
+
 }
 
 model DiagnosticDocument {
-  id              String   @id @default(uuid())
-  diagnosticId    String
-  filename        String
-  storedFilename  String
-  filePath        String
-  fileType        String
-  mimeType        String
-  fileSize        Int
-  description     String?
-  uploadedBy      String
-  createdAt       DateTime @default(now())
+  id             String   @id @default(uuid())
+  diagnosticId   String
+  filename       String
+  storedFilename String
+  filePath       String
+  fileType       String
+  mimeType       String
+  fileSize       Int
+  description    String?
+  uploadedBy     String
+  createdAt      DateTime @default(now())
 
   diagnostic Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
 

@@ -1,4 +1,13 @@
-# Created by https://www.toptal.com/developers/gitignore/api/windows,node,visualstudiocode,linux
+.env
+.env*
+uploads/
+node_modules/
+dist/
+coverage/
+npm-debug.log*
+yarn-*.log*
+*.log
+.DS_Store# Created by https://www.toptal.com/developers/gitignore/api/windows,node,visualstudiocode,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,node,visualstudiocode,linux
 
 ### Linux ###

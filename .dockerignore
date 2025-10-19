@@ -29,3 +29,5 @@ tests/
 README.md
 LICENSE
 docs/
+.env
+.env*

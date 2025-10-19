@@ -5,6 +5,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - MS_SECURITY=http://ms-security:3002/api/v1
     ports:
       - "3003:3003"
     expose:
