@@ -82,9 +82,7 @@ class DiagnosticRepository {
           try {
             await fs.unlink(file.path);
           } catch (fsError) {
-            console.error(
-              `Failed to delete file ${file.path} after error: ${fsError.message}`,
-            );
+            new Error("Error deleting file");
           }
         }
       }

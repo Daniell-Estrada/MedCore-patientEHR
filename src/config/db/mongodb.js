@@ -8,7 +8,7 @@ const connectDB = async () => {
   try {
     await mongoose.connect(MS_PATIENT_EHR_CONFIG.DATABASE_URL_MONGO);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    new Error(`Error connecting to database: ${error.message}`);
   }
 };
 

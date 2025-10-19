@@ -18,7 +18,7 @@ const createDiagnostic = async (req, res) => {
           try {
             await fs.unlink(file.path);
           } catch (error) {
-            console.error(`Error deleting file ${file.path}:`, error);
+            new Error("Error deleting file");
           }
         }
       }
@@ -47,7 +47,6 @@ const createDiagnostic = async (req, res) => {
       data: diagnostic,
     });
   } catch (error) {
-    console.error("Error en createDiagnostic:", error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };

@@ -28,7 +28,7 @@ class PrismaPostgresql extends PrismaClient {
       }
 
       PrismaPostgresql.instance.$on("error", (e) => {
-        console.error("Prisma Client Error: ", e);
+        new Error(`Error in Prisma Client: ${e.message}`);
       });
     }
 

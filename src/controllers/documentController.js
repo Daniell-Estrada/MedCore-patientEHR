@@ -39,7 +39,6 @@ const uploadDocument = async (req, res) => {
       data: docs,
     });
   } catch (error) {
-    console.error("Error en uploadDocument:", error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };

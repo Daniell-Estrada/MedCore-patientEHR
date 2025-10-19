@@ -1,0 +1,10 @@
+services:
+  api:
+    image: ms-patient-ehr:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3003:3003"
+    restart: unless-stopped

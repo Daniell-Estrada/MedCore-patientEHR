@@ -42,7 +42,6 @@ const getAllPatients = async (req, res) => {
       data: combinedPatients,
     });
   } catch (error) {
-    console.error("Error obteniendo pacientes:", error);
     return res.status(500).json({ error: "Error al obtener pacientes" });
   }
 };
@@ -74,10 +73,10 @@ const getPatientById = async (req, res) => {
       age,
     });
   } catch (error) {
-    console.error("Error en getPatientById:", error);
     if (error.response?.status === 404) {
       return res.status(404).json({ message: "Paciente no encontrado" });
     }
+    console.error(error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
@@ -168,7 +167,7 @@ const advancedSearchPatients = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
 
@@ -230,7 +229,6 @@ const updatePatient = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error en updatePatient:", error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
@@ -284,7 +282,6 @@ const updatePatientState = async (req, res) => {
       patient: updatedPatient,
     });
   } catch (error) {
-    console.error("Error en updatePatientState:", error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
