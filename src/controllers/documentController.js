@@ -13,7 +13,7 @@ const uploadDocument = async (req, res) => {
         const fs = require("fs").promises;
         for (const f of req.files) {
           try {
-            await fs.unlink(f.path);
+            if (f.path) await fs.unlink(f.path);
           } catch (_) {}
         }
       }

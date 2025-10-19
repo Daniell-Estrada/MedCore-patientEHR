@@ -9,24 +9,7 @@ const ensureDirectoryExists = (directory) => {
   }
 };
 
-const diagnosticStorage = MS_PATIENT_EHR_CONFIG.VERCEL
-  ? multer.memoryStorage()
-  : multer.diskStorage({
-      destination: (req, file, cb) => {
-        const uploadPath = path.join("uploads", "patients/diagnostics");
-        ensureDirectoryExists(uploadPath);
-        cb(null, uploadPath);
-      },
-      filename: (req, file, cb) => {
-        const patientId = req.params.patientId || "unknown";
-        const timestamp = Date.now();
-        const randomString = Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-
-        const filename = `diagnostic-${patientId}-${timestamp}-${randomString}${ext}`;
-        cb(null, filename);
-      },
-    });
+const diagnosticStorage = multer.memoryStorage();
 
 const diagnosticFileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
