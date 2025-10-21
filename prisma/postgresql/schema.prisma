@@ -21,18 +21,10 @@ enum DiagnosticState {
 }
 
 model Patient {
-  id              String    @id @default(uuid())
-  userId          String    @unique
-  documentNumber  String    @unique
-  birthDate       DateTime
-  age             Int
-  gender          String
-  phone           String?
-  address         String?
-  state           String?
+  id              String       @id @default(uuid())
   diagnostics     Diagnostic[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model Diagnostic {

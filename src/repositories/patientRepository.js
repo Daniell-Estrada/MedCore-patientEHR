@@ -1,6 +1,5 @@
 const prisma = require("../config/db/postgresql");
 const securityService = require("../services/securityService");
-const calculateAge = require("../utils/calculateAge");
 
 class PatientRepository {
   async getAllPatients(page, limit) {
@@ -13,21 +12,17 @@ class PatientRepository {
       const patientIds = patientsFromSecurity.data?.map((p) => p.id) || [];
 
       const patientsEHRData = await prisma.Patient.findMany({
-        where: { userId: { in: patientIds } },
+        where: { id: { in: patientIds } },
       });
 
       const combinedPatients =
         patientsFromSecurity.data?.map((securityPatient) => {
           const ehrData =
-            patientsEHRData.find((p) => p.userId === securityPatient.id) || {};
-          const age = securityPatient.date_of_birth
-            ? calculateAge(new Date(securityPatient.date_of_birth))
-            : null;
+            patientsEHRData.find((p) => p.id === securityPatient.id) || {};
 
           return {
             ...securityPatient,
             ...ehrData,
-            age,
           };
         }) || [];
 
@@ -51,20 +46,15 @@ class PatientRepository {
       }
 
       const patientEHR = await prisma.Patient.findFirst({
-        where: { userId: id },
+        where: { id },
       });
-
-      const age = patientFromSecurity.date_of_birth
-        ? calculateAge(new Date(patientFromSecurity.date_of_birth))
-        : null;
 
       return {
         ...patientFromSecurity,
         ...patientEHR,
-        age,
       };
     } catch (error) {
-      throw new Error(error.message || "Error al obtener paciente");
+      throw error;
     }
   }
 
@@ -99,61 +89,95 @@ class PatientRepository {
     const end = start + limit;
     const pageIds = uniquePatientIds.slice(start, end);
 
-    const patients = await prisma.Patient.findMany({
+    const localPatients = await prisma.Patient.findMany({
       where: { id: { in: pageIds } },
       orderBy: { createdAt: "desc" },
     });
 
-    return { total, page, pages, data: patients };
+    const enrichedPatients = await Promise.all(
+      localPatients.map(async (patient) => {
+        try {
+          return {
+            ...(await securityService.getUserById(patient.id)),
+            ...patient,
+          };
+        } catch (error) {
+          return patient;
+        }
+      }),
+    );
+
+    return { total, page, pages, data: enrichedPatients };
+  }
+
+  async createPatient(patientData) {
+    try {
+      let userFromSecurity;
+      let id = patientData.userId;
+
+      if (!id) {
+        const userData = {
+          email: patientData.email,
+          fullname: patientData.fullname,
+          identificacion: patientData.identificacion,
+          current_password: patientData.current_password,
+          role: "PACIENTE",
+          phone: patientData.phone,
+          date_of_birth: patientData.date_of_birth,
+        };
+
+        userFromSecurity = await securityService.createPatient(userData);
+      } else {
+        userFromSecurity = await securityService.getUserById(id);
+      }
+
+      id = userFromSecurity.id;
+      const existingPatient = await prisma.Patient.findUnique({
+        where: { id: id },
+      });
+
+      if (existingPatient) {
+        throw new Error("El paciente ya existe en el sistema EHR");
+      }
+
+      const newPatient = await prisma.Patient.create({
+        data: { id },
+      });
+
+      return {
+        ...userFromSecurity,
+        ...newPatient,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updatePatient(patientId, updateData) {
-    const updatedSecurityUser = await securityService.updateUser(
+    const updatedSecurityUser = await securityService.updatePatient(
       patientId,
       updateData,
     );
 
-    const birthDate = updatedSecurityUser?.date_of_birth
-      ? new Date(updatedSecurityUser.date_of_birth)
-      : undefined;
-    const age = birthDate ? calculateAge(birthDate) : undefined;
-
-    await prisma.Patient.upsert({
-      where: { userId: patientId },
-      create: {
-        userId: patientId,
-        documentNumber: updatedSecurityUser?.identificacion,
-        birthDate: birthDate || new Date(),
-        age: typeof age === "number" ? age : 0,
-        gender: updatedSecurityUser?.gender || "UNKNOWN",
-        phone: updatedSecurityUser?.phone || null,
-        address: null,
-        state: updatedSecurityUser?.status || null,
-      },
-      update: {
-        birthDate: birthDate ?? undefined,
-        age: typeof age === "number" ? age : undefined,
-        phone: updatedSecurityUser?.phone ?? undefined,
-        state: updatedSecurityUser?.status ?? undefined,
-      },
+    const updatePatient = await prisma.Patient.upsert({
+      where: { id: patientId },
+      create: { id: patientId },
+      update: {},
     });
 
-    const finalAge = updatedSecurityUser?.date_of_birth
-      ? calculateAge(new Date(updatedSecurityUser.date_of_birth))
-      : null;
-    return { ...updatedSecurityUser, age: finalAge };
+    return {
+      ...updatedSecurityUser,
+      ...updatePatient,
+    };
   }
 
   async updatePatientState(patientId, newState) {
-    const updatedUser = await securityService.updateUserState(
+    const updatedUser = await securityService.updatePatientState(
       patientId,
       newState,
     );
-    await prisma.Patient.updateMany({
-      where: { userId: patientId },
-      data: { state: newState },
-    });
-    return updatedUser;
+
+    return { ...updatedUser, id: patientId };
   }
 }
 

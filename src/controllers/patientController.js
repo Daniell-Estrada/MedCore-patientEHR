@@ -27,7 +27,9 @@ const getPatientById = async (req, res) => {
     if (error.response?.status === 404) {
       return res.status(404).json({ message: "Paciente no encontrado" });
     }
-    console.error(error);
+    if (error.status == 404) {
+      return res.status(404).json({ message: "Paciente no encontrado" });
+    }
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };
@@ -64,6 +66,47 @@ const advancedSearchPatients = async (req, res) => {
         dateFrom: dateFrom || null,
         dateTo: dateTo || null,
       },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
+ * Create a new patient
+ * If userId is provided, creates patient directly
+ * Otherwise, creates user in ms-security first, then creates patient in EHR
+ */
+const createPatient = async (req, res) => {
+  try {
+    const patientData = req.body;
+
+    if (!patientData.userId) {
+      const requiredFields = [
+        "email",
+        "fullname",
+        "identificacion",
+        "date_of_birth",
+      ];
+      const missingFields = requiredFields.filter(
+        (field) => !patientData[field],
+      );
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          message: "Faltan campos obligatorios",
+          missingFields,
+          required:
+            "email, fullname, identificacion, date_of_birth son requeridos si no se proporciona userId",
+        });
+      }
+    }
+
+    const newPatient = await patientRepository.createPatient(patientData);
+
+    return res.status(201).json({
+      message: "Paciente creado correctamente",
+      data: newPatient,
     });
   } catch (error) {
     return res.status(500).json({ message: "Error interno del servidor" });
@@ -113,6 +156,7 @@ const updatePatientState = async (req, res) => {
 module.exports = {
   getAllPatients,
   getPatientById,
+  createPatient,
   updatePatient,
   updatePatientState,
   advancedSearchPatients,

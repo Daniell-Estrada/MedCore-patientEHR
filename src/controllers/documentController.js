@@ -24,6 +24,7 @@ const uploadDocument = async (req, res) => {
     }
 
     const { error } = validateDocument({ files: req.files || [] });
+    console.log(error);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
@@ -39,6 +40,7 @@ const uploadDocument = async (req, res) => {
       data: docs,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "Error interno del servidor" });
   }
 };

@@ -59,7 +59,6 @@ const updatePatientValidators = [
   handleValidation,
 ];
 
-// Validators for advanced patient search query
 const advancedSearchQueryValidators = [
   query("diagnostic").optional().trim().escape(),
   query("dateFrom")
@@ -93,6 +92,48 @@ const createDiagnosticValidators = [
   handleValidation,
 ];
 
+const createPatientValidators = [
+  optionalText("userId"),
+  body("email")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .isEmail()
+    .withMessage(
+      "Email es requerido y debe ser válido si no se proporciona userId",
+    )
+    .normalizeEmail(),
+  body("fullname")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .escape()
+    .isLength({ min: 3 })
+    .withMessage(
+      "Nombre completo es requerido (mínimo 3 caracteres) si no se proporciona userId",
+    ),
+  body("identificacion")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .escape()
+    .matches(/^[A-Za-z0-9-_.]{5,50}$/)
+    .withMessage(
+      "Identificación es requerida y debe ser válida (5-50 caracteres alfanuméricos) si no se proporciona userId",
+    ),
+  body("date_of_birth")
+    .if((value, { req }) => !req.body.userId)
+    .isISO8601()
+    .withMessage(
+      "Fecha de nacimiento es requerida y debe ser ISO válida si no se proporciona userId",
+    )
+    .toDate(),
+  optionalText("phone")
+    .matches(/^[0-9+\-()\s]{6,20}$/)
+    .withMessage("Teléfono debe tener formato válido"),
+  optionalText("current_password")
+    .isLength({ min: 8 })
+    .withMessage("La contraseña debe tener al menos 8 caracteres"),
+  handleValidation,
+];
+
 module.exports = {
   sanitizeText,
   optionalText,
@@ -103,5 +144,6 @@ module.exports = {
   handleValidation,
   updatePatientValidators,
   createDiagnosticValidators,
+  createPatientValidators,
   advancedSearchQueryValidators,
 };

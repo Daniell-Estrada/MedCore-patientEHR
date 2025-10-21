@@ -7,11 +7,11 @@ const { getAuthHeader } = require("../middleware/requestContext");
  * It provides functions to get user details, validate user roles, fetch all patients, and create new users.
  */
 const securityService = {
-  async getUserById(userId) {
+  async getUserById(id) {
     try {
       const headers = getAuthHeader();
       const res = await axios.get(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${id}`,
         {
           headers,
         },
@@ -45,7 +45,7 @@ const securityService = {
         `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients`,
         {
           headers,
-          params: { role: "PACIENTE", page, limit },
+          params: { page, limit },
         },
       );
       return res.data;
@@ -54,11 +54,11 @@ const securityService = {
     }
   },
 
-  async createUser(userData) {
+  async createPatient(userData) {
     try {
       const headers = getAuthHeader();
       const res = await axios.post(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients`,
         userData,
         {
           headers,
@@ -70,11 +70,11 @@ const securityService = {
     }
   },
 
-  async updateUser(userId, userData) {
+  async updatePatient(userId, userData) {
     try {
       const headers = getAuthHeader();
       const res = await axios.put(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/${userId}`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients/${userId}`,
         userData,
         { headers },
       );
@@ -84,11 +84,11 @@ const securityService = {
     }
   },
 
-  async updateUserState(userId, status) {
+  async updatePatientState(userId, status) {
     try {
       const headers = getAuthHeader();
       const res = await axios.patch(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/state/${userId}`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients/:${userId}/state`,
         { status },
         { headers },
       );
