@@ -21,6 +21,7 @@ Specialized microservice for managing Electronic Health Records (EHR) of patient
 - [![Axios][axios-logo]][axios-url] Axios is a promise-based HTTP client for making requests to external APIs.
 - [![CORS][cors-logo]][cors-url] CORS is an Express middleware to enable Cross-Origin Resource Sharing.
 - [![Nodemon][nodemon-logo]][nodemon-url] Nodemon is a utility that monitors for any changes in your source and automatically restarts your server.
+- [![node-cache][node-cache-logo]][node-cache-url] Node-cache is a simple in-memory caching module for Node.js with TTL support.
 
 
 [Prisma-logo]: https://img.shields.io/badge/Prisma-000000?style=for-the-badge&logo=prisma
@@ -43,6 +44,8 @@ Specialized microservice for managing Electronic Health Records (EHR) of patient
 [cors-url]: https://www.npmjs.com/package/cors
 [nodemon-logo]: https://img.shields.io/badge/Nodemon-000000?style=for-the-badge&logo=nodemon
 [nodemon-url]: https://www.npmjs.com/package/nodemon
+[node-cache-logo]: https://img.shields.io/badge/node--cache-000000?style=for-the-badge&logo=nodedotjs
+[node-cache-url]: https://www.npmjs.com/package/node-cache
 
 
 ## Run Locally

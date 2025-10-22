@@ -1,7 +1,8 @@
 const securityService = require("../services/securityService");
+const cacheService = require("../services/cacheService");
 
 /**
- * Middleware to ensure the user is authenticated and has ADMINISTRADOR role
+ * Middleware to enforce that the authenticated user is an administrator.
  */
 async function AdminMiddleware(req, res, next) {
   try {
@@ -9,14 +10,17 @@ async function AdminMiddleware(req, res, next) {
       return res.status(401).json({ message: "No autenticado" });
     }
 
-    const userData = await securityService.getUserById(req.user.id);
-    req.securityUser = userData;
+    if (!req.securityUser) {
+      let userData = cacheService.getUserById(req.user.id);
 
-    const isAdmin = await securityService.validateUserRole(
-      req.user.id,
-      "ADMINISTRADOR",
-    );
-    if (!isAdmin) {
+      if (!userData) {
+        userData = await securityService.getUserById(req.user.id);
+      }
+
+      req.securityUser = userData;
+    }
+
+    if (req.securityUser.role !== "ADMINISTRADOR") {
       return res
         .status(403)
         .json({ message: "Acceso denegado. Solo administradores" });

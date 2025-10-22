@@ -1,5 +1,6 @@
 const prisma = require("../config/db/postgresql");
 const securityService = require("../services/securityService");
+const cacheService = require("../services/cacheService");
 
 class PatientRepository {
   async getAllPatients(page, limit) {
@@ -41,13 +42,27 @@ class PatientRepository {
     try {
       const patientFromSecurity = await securityService.getUserById(id);
 
-      if (!patientFromSecurity || patientFromSecurity.role !== "PACIENTE") {
-        throw new Error("Paciente no encontrado");
+      if (!patientFromSecurity) {
+        const error = new Error("Paciente no encontrado");
+        error.status = 404;
+        throw error;
+      }
+
+      if (patientFromSecurity.role && patientFromSecurity.role !== "PACIENTE") {
+        const error = new Error("El usuario no es un paciente");
+        error.status = 404;
+        throw error;
       }
 
       const patientEHR = await prisma.Patient.findFirst({
         where: { id },
       });
+
+      if (!patientEHR) {
+        const error = new Error("Registro EHR del paciente no encontrado");
+        error.status = 404;
+        throw error;
+      }
 
       return {
         ...patientFromSecurity,
@@ -94,18 +109,53 @@ class PatientRepository {
       orderBy: { createdAt: "desc" },
     });
 
-    const enrichedPatients = await Promise.all(
-      localPatients.map(async (patient) => {
+    const { found: cachedUsers, missing: missingIds } =
+      cacheService.getMultipleUsers(pageIds);
+
+    const enrichedPatients = [...localPatients];
+
+    for (let i = 0; i < enrichedPatients.length; i++) {
+      const patient = enrichedPatients[i];
+      const cachedUser = cachedUsers.find((u) => u.id === patient.id);
+
+      if (cachedUser) {
+        enrichedPatients[i] = {
+          ...cachedUser,
+          ...patient,
+        };
+      }
+    }
+
+    if (missingIds.length > 0) {
+      const missingUsersPromises = missingIds.map(async (id) => {
         try {
-          return {
-            ...(await securityService.getUserById(patient.id)),
-            ...patient,
-          };
+          return await securityService.getUserById(id);
         } catch (error) {
-          return patient;
+          return null;
         }
-      }),
-    );
+      });
+
+      const missingUsers = await Promise.all(missingUsersPromises);
+
+      missingUsers.forEach((user) => {
+        if (user && user.id) {
+          cacheService.setUserById(user.id, user);
+          if (user.role) {
+            cacheService.setUserRole(user.id, user.role);
+          }
+
+          const patientIndex = enrichedPatients.findIndex(
+            (p) => p.id === user.id,
+          );
+          if (patientIndex !== -1) {
+            enrichedPatients[patientIndex] = {
+              ...user,
+              ...enrichedPatients[patientIndex],
+            };
+          }
+        }
+      });
+    }
 
     return { total, page, pages, data: enrichedPatients };
   }

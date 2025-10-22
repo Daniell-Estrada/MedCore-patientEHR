@@ -1,14 +1,26 @@
 const prisma = require("../config/db/postgresql");
 const securityService = require("../services/securityService");
+const DocumentRecordsBuilder = require("../utils/documentRecordsBuilder");
+const { upload: storageUpload } = require("../services/storageService");
+const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
 const fs = require("fs").promises;
 
 /**
  * Repository for managing diagnostics.
  */
 class DiagnosticRepository {
-  async createDiagnostic(patientId, doctorId, diagnosticData, files) {
+  async createDiagnostic(
+    patientId,
+    doctorId,
+    diagnosticData,
+    files,
+    doctorUser = null,
+  ) {
+    let doctor;
+    let patient;
+
     try {
-      const patient = await prisma.Patient.findUnique({
+      patient = await prisma.Patient.findUnique({
         where: { id: patientId },
       });
 
@@ -20,12 +32,30 @@ class DiagnosticRepository {
         throw new Error("Cannot add diagnostics to an inactive patient");
       }
 
-      const doctor = await securityService.getUserById(doctorId);
+      if (doctorUser) {
+        doctor = doctorUser;
+      } else {
+        doctor = await securityService.getUserById(doctorId);
+      }
 
       if (!doctor || doctor.role !== "MEDICO") {
         throw new Error("Only doctors can add diagnostics");
       }
 
+      const doctorData = {
+        id: doctor.id,
+        email: doctor.email,
+        role: doctor.role,
+        fullname: doctor.fullname,
+      };
+
+      doctor = doctorData;
+    } catch (error) {
+      await this.#cleanupTempFiles(files);
+      throw error;
+    }
+
+    try {
       const diagnostic = await prisma.$transaction(async (tx) => {
         const newDiagnostic = await tx.Diagnostic.create({
           data: {
@@ -44,21 +74,36 @@ class DiagnosticRepository {
         });
 
         if (files && files.length > 0) {
-          const documentRecords = files.map((file) => ({
+          const prepared = [];
+          for (const f of files) {
+            const buffer = f.buffer ? f.buffer : await fs.readFile(f.path);
+            const filename = DocumentRecordsBuilder.generateUniqueFilename({
+              patientId,
+              originalname: f.originalname,
+            });
+
+            const uploaded = await storageUpload({
+              buffer,
+              originalname: f.originalname,
+              filename,
+              mimetype: f.mimetype,
+            });
+
+            prepared.push({ f, uploaded });
+          }
+
+          const documentRecords = DocumentRecordsBuilder.buildDocumentRecords({
             diagnosticId: newDiagnostic.id,
-            filename: file.originalname,
-            storedFilename: file.filename,
-            filePath: file.path,
-            fileType: file.originalname.split(".").pop().toLowerCase(),
-            mimeType: file.mimetype,
-            fileSize: file.size,
-            description: null,
+            files,
             uploadedBy: doctorId,
-          }));
+            uploadedFiles: prepared,
+          });
 
           await tx.DiagnosticDocument.createMany({
             data: documentRecords,
           });
+
+          await this.#cleanupTempFiles(files);
         }
 
         const result = await tx.Diagnostic.findUnique({
@@ -77,16 +122,28 @@ class DiagnosticRepository {
 
       return diagnostic;
     } catch (error) {
-      if (files && files.length > 0) {
-        for (const file of files) {
-          try {
-            await fs.unlink(file.path);
-          } catch (fsError) {
-            new Error("Error deleting file");
-          }
+      await this.#cleanupTempFiles(files);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up temporary files from local filesystem
+   */
+  async #cleanupTempFiles(files) {
+    if (!files?.length || MS_PATIENT_EHR_CONFIG.VERCEL) return;
+
+    for (const file of files) {
+      if (file.path) {
+        try {
+          await fs.unlink(file.path);
+        } catch (error) {
+          console.error(
+            `Error deleting temporary file ${file.path}:`,
+            error.message,
+          );
         }
       }
-      throw error;
     }
   }
 }

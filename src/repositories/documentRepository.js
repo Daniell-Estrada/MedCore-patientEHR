@@ -1,6 +1,6 @@
 const prisma = require("../config/db/postgresql");
 const fs = require("fs").promises;
-const path = require("path");
+const DocumentRecordsBuilder = require("../utils/documentRecordsBuilder");
 const {
   upload: storageUpload,
   remove: storageRemove,
@@ -39,11 +39,10 @@ class DocumentRepository {
     const prepared = [];
     for (const f of files) {
       const buffer = f.buffer ? f.buffer : await fs.readFile(f.path);
-      const timestamp = Date.now();
-      const randomString = Math.round(Math.random() * 1e9);
-      const ext = path.extname(f.originalname);
-
-      const filename = `diagnostic-${patientId}-${timestamp}-${randomString}${ext}`;
+      const filename = DocumentRecordsBuilder.generateUniqueFilename({
+        patientId,
+        originalname: f.originalname,
+      });
 
       const uploaded = await storageUpload({
         buffer,
@@ -55,18 +54,12 @@ class DocumentRepository {
       prepared.push({ f, uploaded });
     }
 
-    const records = prepared.map(({ f, uploaded }) => ({
+    const records = DocumentRecordsBuilder.buildDocumentRecords({
       diagnosticId: diagnostic.id,
-      filename: f.originalname,
-      storedFilename:
-        uploaded.storedKey || f.filename || path.basename(uploaded.filePath),
-      filePath: uploaded.filePath,
-      fileType: (f.originalname.split(".").pop() || "").toLowerCase(),
-      mimeType: f.mimetype,
-      fileSize: f.size,
-      description: null,
+      files,
       uploadedBy,
-    }));
+      uploadedFiles: prepared,
+    });
 
     await prisma.DiagnosticDocument.createMany({ data: records });
 

@@ -24,13 +24,13 @@ const getPatientById = async (req, res) => {
     const payload = await patientRepository.getPatientById(id);
     return res.json(payload);
   } catch (error) {
-    if (error.response?.status === 404) {
+    if (error.response?.status === 404 || error.status === 404) {
       return res.status(404).json({ message: "Paciente no encontrado" });
     }
-    if (error.status == 404) {
-      return res.status(404).json({ message: "Paciente no encontrado" });
-    }
-    return res.status(500).json({ message: "Error interno del servidor" });
+
+    return res.status(500).json({
+      message: "Error interno del servidor",
+    });
   }
 };
 

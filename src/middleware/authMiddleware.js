@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
 const { setToken, setUser } = require("./requestContext");
+const cacheService = require("../services/cacheService");
 
 /**
  * Middleware to authenticate requests using JWT tokens.
@@ -23,6 +24,26 @@ function authMiddleware(req, res, next) {
     req.user = user;
     setToken(token);
     setUser(decoded);
+
+    if (decoded.id && decoded.role) {
+      const cachedRole = cacheService.getUserRole(decoded.id);
+      if (!cachedRole) {
+        cacheService.setUserRole(decoded.id, decoded.role);
+      }
+
+      const cachedUser = cacheService.getUserById(decoded.id);
+      if (!cachedUser) {
+        const basicUserData = {
+          id: decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+          fullname: decoded.fullname,
+          _source: "jwt",
+        };
+        cacheService.setUserById(decoded.id, basicUserData, 60);
+      }
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Token inválido o expirado" });

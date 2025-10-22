@@ -40,6 +40,7 @@ const createDiagnostic = async (req, res) => {
       doctorId,
       req.body,
       files,
+      req.securityUser,
     );
 
     return res.status(201).json({
