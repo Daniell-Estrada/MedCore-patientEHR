@@ -99,6 +99,73 @@ class MedicalHistoryRepository {
     }
   }
 
+  async getPatientTimeline(patientId, pagination = {}) {
+    const { page = 1, limit = 20 } = pagination;
+    const mh = await prisma.medicalHistory.findUnique({
+      where: { patientId },
+      select: { id: true },
+    });
+
+    if (!mh) {
+      const error = new Error("Historial médico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    const [diagnostics, documents] = await Promise.all([
+      prisma.diagnostic.findMany({
+        where: { medicalHistoryId: mh.id },
+        select: {
+          id: true,
+          title: true,
+          consultDate: true,
+          state: true,
+          doctorId: true,
+        },
+      }),
+      prisma.DiagnosticDocument.findMany({
+        where: {
+          diagnostic: { medicalHistoryId: mh.id },
+        },
+        select: {
+          id: true,
+          filename: true,
+          createdAt: true,
+          diagnosticId: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const events = [
+      ...diagnostics.map((d) => ({
+        type: "diagnostic",
+        id: d.id,
+        diagnosticId: d.id,
+        title: d.title,
+        timestamp: d.consultDate,
+        meta: { state: d.state, doctorId: d.doctorId },
+      })),
+      ...documents.map((doc) => ({
+        type: "document",
+        id: doc.id,
+        diagnosticId: doc.diagnosticId,
+        filename: doc.filename,
+        timestamp: doc.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const total = events.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    const data = events.slice(start, start + limit);
+
+    return {
+      data,
+      pagination: { page, limit, total, totalPages },
+    };
+  }
+
   async createMedicalHistory(patientId, userId) {
     try {
       const existingMedicalHistory = await prisma.medicalHistory.findUnique({
@@ -108,7 +175,7 @@ class MedicalHistoryRepository {
       if (existingMedicalHistory) {
         return existingMedicalHistory;
       }
-      
+
       const medicalHistory = await prisma.medicalHistory.create({
         data: {
           patientId,
@@ -124,9 +191,20 @@ class MedicalHistoryRepository {
 
   async updateMedicalHistory(id, data) {
     try {
+      const existingRecord = await prisma.medicalHistory.findUnique({
+        where: { id },
+      });
+
+      if (!existingRecord) {
+        const error = new Error("Medical history record not found");
+        error.status = 404;
+        throw error;
+      }
+
       const medicalHistory = await prisma.medicalHistory.update({
         where: { id },
         data: {
+          ...data,
           updatedAt: new Date(),
         },
       });

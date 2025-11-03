@@ -5,6 +5,7 @@ const {
   getMedicalHistoryById,
   createMedicalHistory,
   updateMedicalHistory,
+  getPatientTimeline,
 } = require("../controllers/medicalHistoryController");
 const { requireRoles } = require("../middleware/roleMiddleware");
 const {
@@ -16,6 +17,12 @@ router.get(
   "/patient/:patientId",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
   getPatientMedicalHistory,
+);
+
+router.get(
+  "/patient/:patientId/timeline",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  getPatientTimeline,
 );
 
 router.get(

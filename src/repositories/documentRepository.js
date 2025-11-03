@@ -66,14 +66,35 @@ class DocumentRepository {
       uploadedFiles: prepared,
     });
 
-    await prisma.DiagnosticDocument.createMany({ data: records });
+    const docs = await prisma.$transaction(async (tx) => {
+      await tx.DiagnosticDocument.createMany({ data: records });
 
-    const docs = await prisma.DiagnosticDocument.findMany({
-      where: {
-        diagnosticId: diagnostic.id,
-        storedFilename: { in: records.map((r) => r.storedFilename) },
-      },
-      orderBy: { createdAt: "desc" },
+      const created = await tx.DiagnosticDocument.findMany({
+        where: {
+          diagnosticId: diagnostic.id,
+          storedFilename: { in: records.map((r) => r.storedFilename) },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (created.length) {
+        const versions = created.map((d) => ({
+          documentId: d.id,
+          version: 1,
+          filename: d.filename,
+          storedFilename: d.storedFilename,
+          filePath: d.filePath,
+          fileType: d.fileType,
+          mimeType: d.mimeType,
+          fileSize: d.fileSize,
+          description: d.description || null,
+          uploadedBy,
+          reason: "initial",
+        }));
+        await tx.DocumentVersion.createMany({ data: versions });
+      }
+
+      return created;
     });
 
     for (const f of files) {
@@ -84,6 +105,124 @@ class DocumentRepository {
       }
     }
     return docs;
+  }
+
+  /**
+   * Create a new version for an existing document, updating the current document fields
+   */
+  async createDocumentVersion({ documentId, file, uploadedBy, reason = null }) {
+    const doc = await prisma.DiagnosticDocument.findUnique({
+      where: { id: documentId },
+    });
+    if (!doc) {
+      const err = new Error("Documento no encontrado");
+      err.status = 404;
+      throw err;
+    }
+
+    const buffer = file.buffer ? file.buffer : await fs.readFile(file.path);
+    const filename = DocumentRecordsBuilder.generateUniqueFilename({
+      patientId: doc.diagnosticId,
+      originalname: file.originalname,
+    });
+    const uploaded = await storageUpload({
+      buffer,
+      originalname: file.originalname,
+      filename,
+      mimetype: file.mimetype,
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.DiagnosticDocument.findUnique({
+        where: { id: documentId },
+        select: {
+          id: true,
+          currentVersion: true,
+          filename: true,
+          storedFilename: true,
+          filePath: true,
+          fileType: true,
+          mimeType: true,
+          fileSize: true,
+          description: true,
+        },
+      });
+
+      const nextVersion = (current.currentVersion || 1) + 1;
+      const versionRecord = await tx.DocumentVersion.create({
+        data: {
+          documentId: documentId,
+          version: nextVersion,
+          filename: file.originalname,
+          storedFilename: uploaded.storedKey || filename,
+          filePath: uploaded.filePath,
+          fileType: (file.originalname.split(".").pop() || "").toLowerCase(),
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          description: null,
+          uploadedBy,
+          reason,
+        },
+      });
+
+      await tx.DiagnosticDocument.update({
+        where: { id: documentId },
+        data: {
+          filename: versionRecord.filename,
+          storedFilename: versionRecord.storedFilename,
+          filePath: versionRecord.filePath,
+          fileType: versionRecord.fileType,
+          mimeType: versionRecord.mimeType,
+          fileSize: versionRecord.fileSize,
+          currentVersion: nextVersion,
+        },
+      });
+
+      return versionRecord;
+    });
+
+    if (file.path && !MS_PATIENT_EHR_CONFIG.VERCEL) {
+      try {
+        await fs.unlink(file.path);
+      } catch (_) {}
+    }
+
+    try {
+      await storageRemove({
+        storedKey: doc.storedFilename,
+        filePath: doc.filePath,
+      });
+    } catch (_) {}
+
+    return result;
+  }
+
+  async getDocumentVersions(documentId) {
+    const exists = await prisma.DiagnosticDocument.findUnique({
+      where: { id: documentId },
+      select: { id: true },
+    });
+    if (!exists) {
+      const err = new Error("Documento no encontrado");
+      err.status = 404;
+      throw err;
+    }
+    return prisma.DocumentVersion.findMany({
+      where: { documentId },
+      orderBy: { version: "desc" },
+    });
+  }
+
+  async getDocumentVersion(documentId, version) {
+    const v = await prisma.DocumentVersion.findFirst({
+      where: { documentId, version },
+    });
+    if (!v) {
+      const err = new Error("Versión no encontrada");
+      err.status = 404;
+      throw err;
+    }
+    return v;
   }
 
   async getDocumentById(id) {
