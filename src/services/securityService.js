@@ -88,7 +88,7 @@ const securityService = {
         },
       );
 
-      const newPatient = res.data;
+      const newPatient = res.data?.patient;
 
       cacheService.invalidatePatientPages();
 
@@ -131,7 +131,7 @@ const securityService = {
     try {
       const headers = getAuthHeader();
       const res = await axiosInstance.patch(
-        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients/:${userId}/state`,
+        `${MS_PATIENT_EHR_CONFIG.MS_SECURITY}/users/patients/${userId}/state`,
         { status },
         {
           headers,

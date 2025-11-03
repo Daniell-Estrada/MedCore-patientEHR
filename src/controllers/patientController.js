@@ -109,7 +109,9 @@ const createPatient = async (req, res) => {
       data: newPatient,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error interno del servidor" });
+    return res.status(error.response?.status || 500).json({
+      message: error.response?.data.message || "Error interno del servidor",
+    });
   }
 };
 
@@ -122,8 +124,7 @@ const updatePatient = async (req, res) => {
     const { id } = req.params;
     const updated = await patientRepository.updatePatient(id, req.body);
     return res.status(200).json({
-      message: "Paciente actualizado correctamente",
-      patient: updated,
+      ...updated,
     });
   } catch (error) {
     return res.status(500).json({ message: "Error interno del servidor" });
@@ -145,11 +146,12 @@ const updatePatientState = async (req, res) => {
     }
     const updatedUser = await patientRepository.updatePatientState(id, status);
     return res.json({
-      message: "Estado del paciente actualizado correctamente",
-      patient: updatedUser,
+      ...updatedUser,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error interno del servidor" });
+    return res.status(error.response?.status || 500).json({
+      message: error.response?.data.message || "Error interno del servidor",
+    });
   }
 };
 

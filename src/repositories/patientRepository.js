@@ -85,17 +85,23 @@ class PatientRepository {
       where.diagnosis = { contains: diagnostic, mode: "insensitive" };
     }
     if (dateFrom || dateTo) {
-      where.date = {};
-      if (dateFrom) where.date.gte = new Date(dateFrom);
-      if (dateTo) where.date.lte = new Date(dateTo);
+      where.consultDate = {};
+      if (dateFrom) where.consultDate.gte = new Date(dateFrom);
+      if (dateTo) where.consultDate.lte = new Date(dateTo);
     }
 
     const diagRows = await prisma.Diagnostic.findMany({
       where,
-      select: { patientId: true },
+      select: {
+        medicalHistory: {
+          select: {
+            patientId: true,
+          },
+        },
+      },
     });
     const uniquePatientIds = Array.from(
-      new Set(diagRows.map((r) => r.patientId)),
+      new Set(diagRows.map((r) => r.medicalHistory.patientId)),
     );
 
     const total = uniquePatientIds.length;
@@ -170,7 +176,8 @@ class PatientRepository {
           email: patientData.email,
           fullname: patientData.fullname,
           identificacion: patientData.identificacion,
-          current_password: patientData.current_password,
+          current_password:
+            patientData.current_password || this.#generateTempPassword(),
           role: "PACIENTE",
           phone: patientData.phone,
           date_of_birth: patientData.date_of_birth,
@@ -183,7 +190,7 @@ class PatientRepository {
 
       id = userFromSecurity.id;
       const existingPatient = await prisma.Patient.findUnique({
-        where: { id: id },
+        where: { id },
       });
 
       if (existingPatient) {
@@ -204,10 +211,7 @@ class PatientRepository {
   }
 
   async updatePatient(patientId, updateData) {
-    const updatedSecurityUser = await securityService.updatePatient(
-      patientId,
-      updateData,
-    );
+    const response = await securityService.updatePatient(patientId, updateData);
 
     const updatePatient = await prisma.Patient.upsert({
       where: { id: patientId },
@@ -216,18 +220,25 @@ class PatientRepository {
     });
 
     return {
-      ...updatedSecurityUser,
-      ...updatePatient,
+      message: response?.message,
+      patient: { ...response?.patient, ...updatePatient },
     };
   }
 
   async updatePatientState(patientId, newState) {
-    const updatedUser = await securityService.updatePatientState(
+    const response = await securityService.updatePatientState(
       patientId,
       newState,
     );
 
-    return { ...updatedUser, id: patientId };
+    return {
+      message: response?.message,
+      patient: { ...response?.patient, id: patientId },
+    };
+  }
+
+  #generateTempPassword() {
+    return Math.random().toString(36).slice(-8) + "Aa1!";
   }
 }
 

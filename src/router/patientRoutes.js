@@ -46,7 +46,7 @@ router.patch("/state/:id", AdminMiddleware, updatePatientState);
 
 router.post(
   "/:patientId/diagnostics",
-  requireRoles(["ADMINISTRADOR", "MEDICO"]),
+  requireRoles(["MEDICO"]),
   uploadMultiple,
   createDiagnosticValidators,
   createDiagnostic,

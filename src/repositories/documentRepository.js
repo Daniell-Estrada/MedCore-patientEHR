@@ -21,7 +21,12 @@ class DocumentRepository {
     }
 
     const diagnostic = await prisma.Diagnostic.findFirst({
-      where: { id: diagnosticId, patientId },
+      where: {
+        id: diagnosticId,
+        medicalHistory: {
+          patientId: patientId,
+        },
+      },
       select: { id: true },
     });
 
@@ -87,11 +92,22 @@ class DocumentRepository {
 
   async getDocumentsByPatientId(patientId) {
     return prisma.DiagnosticDocument.findMany({
-      where: { diagnostic: { patientId } },
+      where: {
+        diagnostic: {
+          medicalHistory: {
+            patientId: patientId,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         diagnostic: {
-          select: { id: true, title: true, date: true, doctorId: true },
+          select: {
+            id: true,
+            title: true,
+            consultDate: true,
+            doctorId: true,
+          },
         },
       },
     });

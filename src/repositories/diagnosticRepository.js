@@ -3,6 +3,7 @@ const securityService = require("../services/securityService");
 const DocumentRecordsBuilder = require("../utils/documentRecordsBuilder");
 const { upload: storageUpload } = require("../services/storageService");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
+const medicalHistoryRepository = require("./medicalHistoryRepository");
 const fs = require("fs").promises;
 
 /**
@@ -57,9 +58,22 @@ class DiagnosticRepository {
 
     try {
       const diagnostic = await prisma.$transaction(async (tx) => {
+        let medicalHistory = await tx.medicalHistory.findUnique({
+          where: { patientId },
+        });
+
+        if (!medicalHistory) {
+          medicalHistory = await tx.medicalHistory.create({
+            data: {
+              patientId,
+              createdBy: doctorId,
+            },
+          });
+        }
+
         const newDiagnostic = await tx.Diagnostic.create({
           data: {
-            patientId,
+            medicalHistoryId: medicalHistory.id,
             doctorId,
             title: diagnosticData.title,
             description: diagnosticData.description,
@@ -67,6 +81,10 @@ class DiagnosticRepository {
             diagnosis: diagnosticData.diagnosis,
             treatment: diagnosticData.treatment,
             observations: diagnosticData.observations || null,
+            prescriptions: diagnosticData.prescriptions || null,
+            physicalExam: diagnosticData.physicalExam || null,
+            vitalSigns: diagnosticData.vitalSigns || null,
+            consultDate: diagnosticData.consultDate || new Date(),
             nextAppointment: diagnosticData.nextAppointment
               ? new Date(diagnosticData.nextAppointment)
               : null,
@@ -110,11 +128,15 @@ class DiagnosticRepository {
           where: { id: newDiagnostic.id },
           include: {
             documents: true,
-            patient: true,
+            medicalHistory: {
+              include: {
+                patient: true,
+              },
+            },
           },
         });
         return {
-          patient: result.patient,
+          patient: result.medicalHistory.patient,
           doctor: doctor,
           documents: result.documents,
         };
@@ -138,10 +160,7 @@ class DiagnosticRepository {
         try {
           await fs.unlink(file.path);
         } catch (error) {
-          console.error(
-            `Error deleting temporary file ${file.path}:`,
-            error.message,
-          );
+          // Ignore errors during cleanup
         }
       }
     }

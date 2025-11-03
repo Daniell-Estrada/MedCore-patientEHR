@@ -21,34 +21,38 @@ enum DiagnosticState {
 }
 
 model Patient {
-  id              String       @id @default(uuid())
-  diagnostics     Diagnostic[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id              String            @id @default(uuid())
+  medicalHistory  MedicalHistory?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model Diagnostic {
-  id              String   @id @default(uuid())
-  patientId       String
-  doctorId        String
-  title           String
-  description     String
-  symptoms        String
-  diagnosis       String
-  treatment       String
-  observations    String?
-  date            DateTime @default(now())
-  nextAppointment DateTime?
-  state           DiagnosticState @default(ACTIVE)
-  documents       DiagnosticDocument[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String              @id @default(uuid())
+  medicalHistoryId  String
+  doctorId          String
+  title             String
+  description       String
+  symptoms          String
+  diagnosis         String
+  treatment         String
+  observations      String?
+  prescriptions     String?
+  physicalExam      String?
+  vitalSigns        String?
+  consultDate       DateTime            @default(now())
+  nextAppointment   DateTime?
+  state             DiagnosticState     @default(ACTIVE)
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  documents         DiagnosticDocument[]
+  medicalHistory    MedicalHistory      @relation(fields: [medicalHistoryId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  @@index([patientId])
+  @@index([medicalHistoryId])
   @@index([doctorId])
-
+  @@index([consultDate])
 }
 
 model DiagnosticDocument {
@@ -67,4 +71,19 @@ model DiagnosticDocument {
   diagnostic Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
 
   @@index([diagnosticId])
+}
+
+model MedicalHistory {
+  id              String       @id @default(uuid())
+  patientId       String       @unique
+  createdBy       String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  patient         Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  diagnostics     Diagnostic[]
+
+  @@index([patientId])
+  @@index([createdBy])
 }

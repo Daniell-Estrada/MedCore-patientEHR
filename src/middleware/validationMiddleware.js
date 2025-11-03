@@ -88,9 +88,18 @@ const createDiagnosticValidators = [
   sanitizeText("symptoms"),
   sanitizeText("diagnosis"),
   sanitizeText("treatment"),
+  optionalText("observations"),
+  optionalText("prescriptions"),
+  optionalText("physicalExam"),
+  optionalText("vitalSigns"),
+  validateDate("consultDate"),
   validateDate("nextAppointment"),
   handleValidation,
 ];
+
+const createMedicalHistoryValidators = [handleValidation];
+
+const updateMedicalHistoryValidators = [handleValidation];
 
 const createPatientValidators = [
   optionalText("userId"),
@@ -146,4 +155,6 @@ module.exports = {
   createDiagnosticValidators,
   createPatientValidators,
   advancedSearchQueryValidators,
+  createMedicalHistoryValidators,
+  updateMedicalHistoryValidators,
 };
