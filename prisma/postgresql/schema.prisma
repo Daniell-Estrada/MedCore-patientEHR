@@ -43,6 +43,7 @@ model Diagnostic {
   consultDate       DateTime            @default(now())
   nextAppointment   DateTime?
   state             DiagnosticState     @default(ACTIVE)
+  customFields      Json?
 
   documents         DiagnosticDocument[]
   medicalHistory    MedicalHistory      @relation(fields: [medicalHistoryId], references: [id], onDelete: Cascade)
@@ -66,11 +67,36 @@ model DiagnosticDocument {
   fileSize       Int
   description    String?
   uploadedBy     String
+  currentVersion Int      @default(1)
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   diagnostic Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
+  versions   DocumentVersion[]
 
   @@index([diagnosticId])
+}
+
+model DocumentVersion {
+  id             String   @id @default(uuid())
+  documentId     String
+  version        Int
+  filename       String
+  storedFilename String
+  filePath       String
+  fileType       String
+  mimeType       String
+  fileSize       Int
+  description    String?
+  uploadedBy     String
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  document DiagnosticDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+  @@index([version])
 }
 
 model MedicalHistory {
