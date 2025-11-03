@@ -1,24 +1,13 @@
 const securityService = require("../services/securityService");
 const cacheService = require("../services/cacheService");
+const attachSecurityUser = require("./attachSecurityUser");
 
 /**
  * Middleware to enforce that the authenticated user is an administrator.
  */
 async function AdminMiddleware(req, res, next) {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "No autenticado" });
-    }
-
-    if (!req.securityUser) {
-      let userData = cacheService.getUserById(req.user.id);
-
-      if (!userData) {
-        userData = await securityService.getUserById(req.user.id);
-      }
-
-      req.securityUser = userData;
-    }
+    await attachSecurityUser(req, res, async () => {});
 
     if (req.securityUser.role !== "ADMINISTRADOR") {
       return res

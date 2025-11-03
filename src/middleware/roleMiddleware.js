@@ -1,5 +1,6 @@
 const securityService = require("../services/securityService");
 const cacheService = require("../services/cacheService");
+const attachSecurityUser = require("./attachSecurityUser");
 
 /**
  * Factory middleware to enforce that the authenticated user has one of the allowed roles.
@@ -8,19 +9,7 @@ const cacheService = require("../services/cacheService");
 function requireRoles(allowedRoles = []) {
   return async function roleMiddleware(req, res, next) {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "No autenticado" });
-      }
-
-      if (!req.securityUser) {
-        let userData = cacheService.getUserById(req.user.id);
-
-        if (!userData) {
-          userData = await securityService.getUserById(req.user.id);
-        }
-
-        req.securityUser = userData;
-      }
+      await attachSecurityUser(req, res, async () => {});
 
       if (allowedRoles.length === 0) return next();
 
