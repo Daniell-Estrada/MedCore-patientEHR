@@ -1,13 +1,5 @@
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
-const { MS_PATIENT_EHR_CONFIG } = require("./environment");
-
-const ensureDirectoryExists = (directory) => {
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true });
-  }
-};
 
 const diagnosticStorage = multer.memoryStorage();
 

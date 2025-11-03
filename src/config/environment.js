@@ -10,8 +10,8 @@ const IS_VERCEL =
   process.env.VERCEL !== "0";
 
 const MS_PATIENT_EHR_CONFIG = {
-  DATABASE_URL_POSTGRES: process.env.DATABASE_URL_POSTGRESQL || "",
-  DATABASE_URL_MONGO: process.env.DATABASE_URL_MONGO || "",
+  DATABASE_URL_POSTGRESQL: process.env.DATABASE_URL_POSTGRESQL || "",
+  DATABASE_URL_MONGODB: process.env.DATABASE_URL_MONGO || "",
   PORT: process.env.PORT || 3013,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(",") || [],
   NODE_ENV: process.env.NODE_ENV || "development",

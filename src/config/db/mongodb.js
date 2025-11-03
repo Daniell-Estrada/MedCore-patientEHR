@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
  */
 const connectDB = async () => {
   try {
-    await mongoose.connect(MS_PATIENT_EHR_CONFIG.DATABASE_URL_MONGO);
+    await mongoose.connect(MS_PATIENT_EHR_CONFIG.DATABASE_URL_MONGODB);
   } catch (error) {
     new Error(`Error connecting to database: ${error.message}`);
   }
