@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const routes = require("./router/routes");
 const cors = require("cors");
+const { initialize, disconnect } = require("./interceptors/auditInterceptor");
 const { MS_PATIENT_EHR_CONFIG } = require("./config/environment");
 
 const port = MS_PATIENT_EHR_CONFIG.PORT;
@@ -18,6 +19,17 @@ app.use(bodyParser.json());
 
 app.use("/api/v1", routes);
 
+process.on("SIGINT", async () => {
+  await disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await disconnect();
+  process.exit(0);
+});
+
 app.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
+  await initialize();
 });

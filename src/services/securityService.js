@@ -42,7 +42,7 @@ const securityService = {
 
       return patientsData;
     } catch (err) {
-      throw err;
+
     }
   },
 
