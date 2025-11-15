@@ -10,14 +10,33 @@ const {
   listDocumentVersions,
   downloadDocumentVersion,
 } = require("../controllers/documentController");
+const { requireRoles } = require("../middleware/roleMiddleware");
 
-router.post("/upload", uploadMultiple, uploadDocument);
+router.post(
+  "/upload",
+  uploadMultiple,
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  uploadDocument,
+);
 router.get("/:id", downloadDocument);
 router.get("/patient/:patientId", getDocumentByPatientId);
-router.delete("/:id", deleteDocument);
+router.delete(
+  "/:id",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  deleteDocument,
+);
 
-router.post("/:id/version", uploadSingle, createDocumentVersion);
-router.get("/:id/versions", listDocumentVersions);
+router.post(
+  "/:id/version",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  uploadSingle,
+  createDocumentVersion,
+);
+router.get(
+  "/:id/versions",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  listDocumentVersions,
+);
 router.get("/:id/version/:version", downloadDocumentVersion);
 
 module.exports = router;
