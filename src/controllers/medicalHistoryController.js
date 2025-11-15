@@ -1,6 +1,24 @@
 const medicalHistoryRepository = require("../repositories/medicalHistoryRepository");
 
 /**
+ * Get all medical history records with pagination.
+ */
+const getAllMedicalHistories = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const payload = await medicalHistoryRepository.getAllMedicalHistories({
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    });
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
  * Get medical history records for a specific patient with pagination.
  */
 const getPatientMedicalHistory = async (req, res) => {
@@ -187,6 +205,7 @@ const updateMedicalHistory = async (req, res) => {
 };
 
 module.exports = {
+  getAllMedicalHistories,
   getPatientMedicalHistory,
   getMedicalHistoryById,
   getPatientTimeline,

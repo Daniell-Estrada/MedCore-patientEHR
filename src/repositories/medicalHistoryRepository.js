@@ -1,11 +1,84 @@
 const prisma = require("../config/db/postgresql");
 const securityService = require("../services/securityService");
 const cacheService = require("../services/cacheService");
-
+const patientRepository = require("./patientRepository");
 /**
  * Repository for managing medical history records.
  */
 class MedicalHistoryRepository {
+  async getAllMedicalHistories(pagination = {}) {
+    try {
+      const { page = 1, limit = 10 } = pagination;
+      const skip = (page - 1) * limit;
+
+      const [medicalHistories, total] = await Promise.all([
+        prisma.medicalHistory.findMany({
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.medicalHistory.count(),
+      ]);
+
+      const patients = await Promise.all(
+        medicalHistories.map(async (mh) => {
+          const patient = await patientRepository.getPatientById(mh.patientId);
+
+          let doctor = cacheService.getUserById(mh.createdBy);
+          if (!doctor) {
+            try {
+              doctor = await securityService.getUserById(mh.createdBy);
+            } catch (_) {
+              doctor = null;
+            }
+          }
+
+          const [totalDiagnostics, lastDiagnostic] = await Promise.all([
+            prisma.diagnostic.count({ where: { medicalHistoryId: mh.id } }),
+            prisma.diagnostic.findFirst({
+              where: { medicalHistoryId: mh.id },
+              orderBy: { consultDate: "desc" },
+              select: { consultDate: true },
+            }),
+          ]);
+
+          return {
+            id: patient.id,
+            fullname: patient.fullname,
+            identificacion: patient.identificacion,
+            email: patient.email,
+            medicalHistory: {
+              id: mh.id,
+              totalDiagnostics,
+              lastDiagnosticDate: lastDiagnostic?.consultDate || null,
+              createdAt: mh.createdAt,
+              updatedAt: mh.updatedAt,
+            },
+            doctor: doctor
+              ? {
+                  id: doctor.id,
+                  fullname: doctor.fullname,
+                  email: doctor.email,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return {
+        patients,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getMedicalHistoryById(id) {
     try {
       const medicalHistory = await prisma.medicalHistory.findUnique({

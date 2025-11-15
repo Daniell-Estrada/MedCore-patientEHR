@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {
+  getAllMedicalHistories,
   getPatientMedicalHistory,
   getMedicalHistoryById,
   createMedicalHistory,
@@ -14,6 +15,12 @@ const {
   createMedicalHistoryValidators,
   updateMedicalHistoryValidators,
 } = require("../middleware/validationMiddleware");
+
+router.get(
+  "/",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  getAllMedicalHistories,
+);
 
 router.get(
   "/patient/:patientId",
