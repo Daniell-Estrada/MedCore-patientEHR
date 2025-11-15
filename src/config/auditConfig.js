@@ -124,8 +124,6 @@ class AuditConfig {
         },
       };
 
-      console.log("Sending audit event:", message);
-
       await this.producer.send({
         topic,
         messages: [message],

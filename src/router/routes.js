@@ -4,11 +4,12 @@ const patientRoutes = require("./patientRoutes");
 const documentRoutes = require("./documentRoutes");
 const medicalHistoryRoutes = require("./medicalHistoryRoutes");
 const diagnosticRoutes = require("./diagnosticRoutes");
+const { auditInterceptor } = require("../interceptors/auditInterceptor");
 const router = require("express").Router();
 
 router.use(contextMiddleware);
-router.use(auditInterceptor);
 router.use(authMiddleware);
+router.use(auditInterceptor);
 
 router.use("/documents", documentRoutes);
 router.use("/patients", patientRoutes);
