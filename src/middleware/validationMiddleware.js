@@ -97,6 +97,29 @@ const createDiagnosticValidators = [
   handleValidation,
 ];
 
+const updateDiagnosticValidators = [
+  optionalText("title"),
+  optionalText("description"),
+  optionalText("symptoms"),
+  optionalText("diagnosis"),
+  optionalText("treatment"),
+  optionalText("observations"),
+  optionalText("prescriptions"),
+  optionalText("physicalExam"),
+  optionalText("vitalSigns"),
+  validateDate("consultDate"),
+  validateDate("nextAppointment"),
+  handleValidation,
+];
+
+const updateDiagnosticStateValidators = [
+  body("state")
+    .exists()
+    .isIn(["ACTIVE", "ARCHIVED", "DELETED"])
+    .withMessage("Estado inválido. Debe ser ACTIVE, ARCHIVED o DELETED"),
+  handleValidation,
+];
+
 const createMedicalHistoryValidators = [handleValidation];
 
 const updateMedicalHistoryValidators = [handleValidation];
@@ -151,9 +174,11 @@ module.exports = {
   validateDate,
   validateAgeRange,
   handleValidation,
+  createPatientValidators,
   updatePatientValidators,
   createDiagnosticValidators,
-  createPatientValidators,
+  updateDiagnosticValidators,
+  updateDiagnosticStateValidators,
   advancedSearchQueryValidators,
   createMedicalHistoryValidators,
   updateMedicalHistoryValidators,

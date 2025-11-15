@@ -3,13 +3,71 @@ const securityService = require("../services/securityService");
 const DocumentRecordsBuilder = require("../utils/documentRecordsBuilder");
 const { upload: storageUpload } = require("../services/storageService");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
-const medicalHistoryRepository = require("./medicalHistoryRepository");
 const fs = require("fs").promises;
 
 /**
  * Repository for managing diagnostics.
  */
 class DiagnosticRepository {
+  async getDiagnosticById(id) {
+    const diagnostic = await prisma.Diagnostic.findUnique({
+      where: { id, state: { not: "DELETED" } },
+    });
+
+    if (!diagnostic) {
+      const error = new Error("Diagnóstico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    return diagnostic;
+  }
+
+  async listDiagnosticsByPatient(
+    patientId,
+    { page = 1, limit = 20, state, dateFrom, dateTo } = {},
+  ) {
+    const mh = await prisma.medicalHistory.findUnique({
+      where: { patientId },
+      select: { id: true },
+    });
+
+    if (!mh) {
+      const error = new Error("Historial médico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    const where = { medicalHistoryId: mh.id };
+    if (state) {
+      where.state = state;
+    }
+    if (dateFrom || dateTo) {
+      where.consultDate = {};
+      if (dateFrom) where.consultDate.gte = new Date(dateFrom);
+      if (dateTo) where.consultDate.lte = new Date(dateTo);
+    }
+
+    const skip = (page - 1) * limit;
+    const [total, rows] = await Promise.all([
+      prisma.Diagnostic.count({ where }),
+      prisma.Diagnostic.findMany({
+        where,
+        orderBy: { consultDate: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      data: rows,
+    };
+  }
+
   async createDiagnostic(
     patientId,
     doctorId,
@@ -147,6 +205,81 @@ class DiagnosticRepository {
       await this.#cleanupTempFiles(files);
       throw error;
     }
+  }
+
+  async updateDiagnostic(id, data) {
+    const existing = await prisma.Diagnostic.findUnique({
+      where: { id, state: { not: "DELETED" } },
+    });
+    if (!existing) {
+      const error = new Error("Diagnóstico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+    if (existing.state === "DELETED") {
+      const error = new Error(
+        "No se puede actualizar un diagnóstico eliminado",
+      );
+      error.status = 400;
+      throw error;
+    }
+
+    const allowedFields = [
+      "title",
+      "description",
+      "symptoms",
+      "diagnosis",
+      "treatment",
+      "observations",
+      "prescriptions",
+      "physicalExam",
+      "vitalSigns",
+      "consultDate",
+      "nextAppointment",
+      "customFields",
+    ];
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
+    }
+
+    const updated = await prisma.Diagnostic.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return updated;
+  }
+
+  async updateDiagnosticState(id, newState) {
+    const existing = await prisma.Diagnostic.findUnique({ where: { id } });
+    if (!existing) {
+      const error = new Error("Diagnóstico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    const updated = await prisma.Diagnostic.update({
+      where: { id },
+      data: { state: newState },
+    });
+    return updated;
+  }
+
+  async deleteDiagnostic(id) {
+    const existing = await prisma.Diagnostic.findUnique({ where: { id } });
+    if (!existing) {
+      const error = new Error("Diagnóstico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    await prisma.Diagnostic.update({
+      where: { id },
+      data: { state: "DELETED" },
+    });
   }
 
   /**

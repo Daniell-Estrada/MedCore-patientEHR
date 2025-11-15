@@ -3,7 +3,7 @@ const { contextMiddleware } = require("../middleware/requestContext");
 const patientRoutes = require("./patientRoutes");
 const documentRoutes = require("./documentRoutes");
 const medicalHistoryRoutes = require("./medicalHistoryRoutes");
-const { auditInterceptor } = require("../interceptors/auditInterceptor");
+const diagnosticRoutes = require("./diagnosticRoutes");
 const router = require("express").Router();
 
 router.use(contextMiddleware);
@@ -12,6 +12,7 @@ router.use(authMiddleware);
 
 router.use("/documents", documentRoutes);
 router.use("/patients", patientRoutes);
+router.use("/diagnostics", diagnosticRoutes);
 router.use("/medical-history", medicalHistoryRoutes);
 
 module.exports = router;
