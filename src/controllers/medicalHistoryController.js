@@ -29,6 +29,38 @@ const getPatientMedicalHistory = async (req, res) => {
 };
 
 /**
+ * Get the authenticated patient's own medical history with pagination.
+ */
+const getMyMedicalHistory = async (req, res) => {
+  try {
+    const patientId = req.user?.id;
+    const { page = 1, limit = 20 } = req.query;
+
+    if (!patientId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
+    const payload = await medicalHistoryRepository.getPatientMedicalHistory(
+      patientId,
+      { page: parseInt(page, 10), limit: parseInt(limit, 10) },
+    );
+
+    if (!payload) {
+      return res.status(404).json({
+        message: "No se encontró historial médico para este paciente",
+      });
+    }
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
  * Get a specific medical history record by its ID.
  */
 const getMedicalHistoryById = async (req, res) => {
@@ -56,6 +88,35 @@ const getPatientTimeline = async (req, res) => {
   try {
     const { patientId } = req.params;
     const { page = 1, limit = 20 } = req.query;
+
+    const payload = await medicalHistoryRepository.getPatientTimeline(
+      patientId,
+      { page: parseInt(page, 10), limit: parseInt(limit, 10) },
+    );
+
+    return res.status(200).json({
+      message: "Timeline obtenido correctamente",
+      ...payload,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
+ * Get the authenticated patient's own medical history timeline.
+ */
+const getMyTimeline = async (req, res) => {
+  try {
+    const patientId = req.user?.id;
+    const { page = 1, limit = 20 } = req.query;
+
+    if (!patientId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
 
     const payload = await medicalHistoryRepository.getPatientTimeline(
       patientId,
@@ -129,6 +190,8 @@ module.exports = {
   getPatientMedicalHistory,
   getMedicalHistoryById,
   getPatientTimeline,
+  getMyMedicalHistory,
+  getMyTimeline,
   createMedicalHistory,
   updateMedicalHistory,
 };
