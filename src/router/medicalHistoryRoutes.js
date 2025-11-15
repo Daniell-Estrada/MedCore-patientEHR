@@ -39,14 +39,14 @@ router.get(
 
 router.post(
   "/patient/:patientId",
-  requireRoles(["MEDICO"]),
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
   createMedicalHistoryValidators,
   createMedicalHistory,
 );
 
 router.patch(
   "/:id",
-  requireRoles(["MEDICO"]),
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
   updateMedicalHistoryValidators,
   updateMedicalHistory,
 );
