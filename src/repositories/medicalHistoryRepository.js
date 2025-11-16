@@ -11,6 +11,9 @@ class MedicalHistoryRepository {
       const { page = 1, limit = 10 } = pagination;
       const skip = (page - 1) * limit;
 
+      const cached = cacheService.getAllMedicalHistoriesPage(page, limit);
+      if (cached) return cached;
+
       const [medicalHistories, total] = await Promise.all([
         prisma.medicalHistory.findMany({
           skip,
@@ -65,7 +68,7 @@ class MedicalHistoryRepository {
         }),
       );
 
-      return {
+      const payload = {
         patients,
         pagination: {
           page,
@@ -74,6 +77,9 @@ class MedicalHistoryRepository {
           totalPages: Math.ceil(total / limit) || 1,
         },
       };
+
+      cacheService.setAllMedicalHistoriesPage(page, limit, payload);
+      return payload;
     } catch (error) {
       throw error;
     }
@@ -81,6 +87,9 @@ class MedicalHistoryRepository {
 
   async getMedicalHistoryById(id) {
     try {
+      const cached = cacheService.getMedicalHistoryByIdCached(id);
+      if (cached) return cached;
+
       const medicalHistory = await prisma.medicalHistory.findUnique({
         where: { id },
         include: {
@@ -104,7 +113,7 @@ class MedicalHistoryRepository {
         doctor = await securityService.getUserById(medicalHistory.createdBy);
       }
 
-      return {
+      const result = {
         ...medicalHistory,
         doctor: doctor
           ? {
@@ -114,6 +123,9 @@ class MedicalHistoryRepository {
             }
           : null,
       };
+
+      cacheService.setMedicalHistoryByIdCached(id, result);
+      return result;
     } catch (error) {
       throw error;
     }
@@ -124,6 +136,13 @@ class MedicalHistoryRepository {
       const { page = 1, limit = 10 } = pagination;
       const skip = (page - 1) * limit;
 
+      const cached = cacheService.getPatientMedicalHistory(
+        patientId,
+        page,
+        limit,
+      );
+      if (cached) return cached;
+
       const medicalHistory = await prisma.medicalHistory.findUnique({
         where: { patientId },
         include: {
@@ -131,9 +150,6 @@ class MedicalHistoryRepository {
             orderBy: { consultDate: "desc" },
             skip,
             take: limit,
-            include: {
-              documents: true,
-            },
           },
         },
       });
@@ -151,7 +167,7 @@ class MedicalHistoryRepository {
         doctor = await securityService.getUserById(medicalHistory.createdBy);
       }
 
-      return {
+      const payload = {
         ...medicalHistory,
         doctor: doctor
           ? {
@@ -167,6 +183,9 @@ class MedicalHistoryRepository {
           totalPages: Math.ceil(totalDiagnostics / limit),
         },
       };
+
+      cacheService.setPatientMedicalHistory(patientId, page, limit, payload);
+      return payload;
     } catch (error) {
       throw error;
     }
@@ -174,6 +193,8 @@ class MedicalHistoryRepository {
 
   async getPatientTimeline(patientId, pagination = {}) {
     const { page = 1, limit = 20 } = pagination;
+    const cached = cacheService.getPatientTimeline(patientId, page, limit);
+    if (cached) return cached;
     const mh = await prisma.medicalHistory.findUnique({
       where: { patientId },
       select: { id: true },
@@ -233,10 +254,13 @@ class MedicalHistoryRepository {
     const start = (page - 1) * limit;
     const data = events.slice(start, start + limit);
 
-    return {
+    const payload = {
       data,
       pagination: { page, limit, total, totalPages },
     };
+
+    cacheService.setPatientTimeline(patientId, page, limit, payload);
+    return payload;
   }
 
   async createMedicalHistory(patientId, userId) {
@@ -256,6 +280,8 @@ class MedicalHistoryRepository {
         },
       });
 
+      cacheService.invalidatePatientMedicalHistory(patientId);
+      cacheService.invalidateAllMedicalHistoriesPages();
       return medicalHistory;
     } catch (error) {
       throw error;
@@ -282,6 +308,12 @@ class MedicalHistoryRepository {
         },
       });
 
+      cacheService.invalidateMedicalHistory(id);
+      if (existingRecord?.patientId) {
+        cacheService.invalidatePatientMedicalHistory(existingRecord.patientId);
+        cacheService.invalidatePatientTimeline(existingRecord.patientId);
+      }
+      cacheService.invalidateAllMedicalHistoriesPages();
       return medicalHistory;
     } catch (error) {
       throw error;

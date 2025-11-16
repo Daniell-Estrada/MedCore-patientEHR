@@ -6,6 +6,7 @@ const {
   remove: storageRemove,
 } = require("../services/storageService");
 const { MS_PATIENT_EHR_CONFIG } = require("../config/environment");
+const cacheService = require("../services/cacheService");
 
 /**
  * Repository for managing diagnostic documents.
@@ -104,6 +105,11 @@ class DocumentRepository {
         } catch (_) {}
       }
     }
+
+    cacheService.invalidatePatientDocuments(patientId);
+    cacheService.invalidatePatientTimeline(patientId);
+    cacheService.invalidatePatientMedicalHistory(patientId);
+
     return docs;
   }
 
@@ -194,10 +200,28 @@ class DocumentRepository {
       });
     } catch (_) {}
 
+    try {
+      cacheService.invalidateDocument(documentId);
+      cacheService.invalidateDocumentVersions(documentId);
+      const diag = await prisma.Diagnostic.findUnique({
+        where: { id: doc.diagnosticId },
+        select: { medicalHistory: { select: { patientId: true } } },
+      });
+      const patientId = diag?.medicalHistory?.patientId;
+      if (patientId) {
+        cacheService.invalidatePatientDocuments(patientId);
+        cacheService.invalidatePatientTimeline(patientId);
+        cacheService.invalidatePatientMedicalHistory(patientId);
+      }
+    } catch (_) {}
+
     return result;
   }
 
   async getDocumentVersions(documentId) {
+    const cached = cacheService.getDocumentVersions(documentId);
+    if (cached) return cached;
+
     const exists = await prisma.DiagnosticDocument.findUnique({
       where: { id: documentId },
       select: { id: true },
@@ -207,13 +231,21 @@ class DocumentRepository {
       err.status = 404;
       throw err;
     }
-    return prisma.DocumentVersion.findMany({
+    const versions = await prisma.DocumentVersion.findMany({
       where: { documentId },
       orderBy: { version: "desc" },
     });
+    cacheService.setDocumentVersions(documentId, versions);
+    versions.forEach((v) =>
+      cacheService.setDocumentVersion(documentId, v.version, v),
+    );
+    return versions;
   }
 
   async getDocumentVersion(documentId, version) {
+    const cached = cacheService.getDocumentVersion(documentId, version);
+    if (cached) return cached;
+
     const v = await prisma.DocumentVersion.findFirst({
       where: { documentId, version },
     });
@@ -222,15 +254,23 @@ class DocumentRepository {
       err.status = 404;
       throw err;
     }
+    cacheService.setDocumentVersion(documentId, version, v);
     return v;
   }
 
   async getDocumentById(id) {
-    return prisma.DiagnosticDocument.findUnique({ where: { id } });
+    const cached = cacheService.getDocumentById(id);
+    if (cached) return cached;
+    const doc = await prisma.DiagnosticDocument.findUnique({ where: { id } });
+    if (doc) cacheService.setDocumentById(id, doc);
+    return doc;
   }
 
   async getDocumentsByPatientId(patientId) {
-    return prisma.DiagnosticDocument.findMany({
+    const cached = cacheService.getPatientDocuments(patientId);
+    if (cached) return cached;
+
+    const docs = await prisma.DiagnosticDocument.findMany({
       where: {
         diagnostic: {
           medicalHistory: {
@@ -250,6 +290,8 @@ class DocumentRepository {
         },
       },
     });
+    cacheService.setPatientDocuments(patientId, docs);
+    return docs;
   }
 
   async deleteDocument(id) {
@@ -261,6 +303,21 @@ class DocumentRepository {
       storedKey: doc.storedFilename,
       filePath: doc.filePath,
     });
+
+    try {
+      cacheService.invalidateDocument(id);
+      cacheService.invalidateDocumentVersions(id);
+      const diag = await prisma.Diagnostic.findUnique({
+        where: { id: doc.diagnosticId },
+        select: { medicalHistory: { select: { patientId: true } } },
+      });
+      const patientId = diag?.medicalHistory?.patientId;
+      if (patientId) {
+        cacheService.invalidatePatientDocuments(patientId);
+        cacheService.invalidatePatientTimeline(patientId);
+        cacheService.invalidatePatientMedicalHistory(patientId);
+      }
+    } catch (_) {}
     return true;
   }
 

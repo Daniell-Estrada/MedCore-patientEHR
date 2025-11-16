@@ -43,6 +43,27 @@ class CacheService {
         useClones: false,
         maxKeys: 300,
       }),
+
+      documents: new NodeCache({
+        stdTTL: 600,
+        checkperiod: 120,
+        useClones: false,
+        maxKeys: 1000,
+      }),
+
+      medicalHistories: new NodeCache({
+        stdTTL: 300,
+        checkperiod: 60,
+        useClones: false,
+        maxKeys: 500,
+      }),
+
+      timelines: new NodeCache({
+        stdTTL: 180,
+        checkperiod: 60,
+        useClones: false,
+        maxKeys: 500,
+      }),
     };
   }
 
@@ -184,6 +205,150 @@ class CacheService {
     return this.deletePattern("relations", `^patient:${patientId}:`);
   }
 
+  getDocumentById(documentId) {
+    return this.get("documents", `doc:${documentId}`);
+  }
+
+  setDocumentById(documentId, doc) {
+    return this.set("documents", `doc:${documentId}`, doc);
+  }
+
+  invalidateDocument(documentId) {
+    let deleted = 0;
+    deleted += this.delete("documents", `doc:${documentId}`);
+    deleted += this.deletePattern("documents", `^doc:${documentId}:ver:`);
+    return deleted;
+  }
+
+  getDocumentVersions(documentId) {
+    return this.get("documents", `doc:${documentId}:versions`);
+  }
+
+  setDocumentVersions(documentId, versions) {
+    return this.set("documents", `doc:${documentId}:versions`, versions);
+  }
+
+  invalidateDocumentVersions(documentId) {
+    return this.delete("documents", `doc:${documentId}:versions`);
+  }
+
+  getDocumentVersion(documentId, version) {
+    return this.get("documents", `doc:${documentId}:ver:${version}`);
+  }
+
+  setDocumentVersion(documentId, version, data) {
+    return this.set("documents", `doc:${documentId}:ver:${version}`, data);
+  }
+
+  getPatientDocuments(patientId) {
+    return this.get("documents", `patient:${patientId}:documents`);
+  }
+
+  setPatientDocuments(patientId, docs) {
+    return this.set("documents", `patient:${patientId}:documents`, docs);
+  }
+
+  invalidatePatientDocuments(patientId) {
+    return this.delete("documents", `patient:${patientId}:documents`);
+  }
+
+  getPatientDiagnosticsPage(
+    patientId,
+    { page, limit, state = null, dateFrom = null, dateTo = null },
+  ) {
+    const key = `patient:${patientId}:diags:page:${page}:limit:${limit}:state:${state || "null"}:from:${dateFrom || "null"}:to:${dateTo || "null"}`;
+    return this.get("diagnostics", key);
+  }
+
+  setPatientDiagnosticsPage(patientId, params, data) {
+    const {
+      page,
+      limit,
+      state = null,
+      dateFrom = null,
+      dateTo = null,
+    } = params || {};
+    const key = `patient:${patientId}:diags:page:${page}:limit:${limit}:state:${state || "null"}:from:${dateFrom || "null"}:to:${dateTo || "null"}`;
+    return this.set("diagnostics", key, data);
+  }
+
+  invalidateAllPatientDiagnostics(patientId) {
+    return this.deletePattern("diagnostics", `^patient:${patientId}:diags:`);
+  }
+
+  getMedicalHistoryByIdCached(id) {
+    return this.get("medicalHistories", `mh:${id}`);
+  }
+
+  setMedicalHistoryByIdCached(id, data) {
+    return this.set("medicalHistories", `mh:${id}`, data);
+  }
+
+  invalidateMedicalHistory(id) {
+    let deleted = 0;
+    deleted += this.delete("medicalHistories", `mh:${id}`);
+    deleted += this.deletePattern("medicalHistories", `^mh:patient:`);
+    deleted += this.deletePattern("timelines", `^timeline:`);
+    return deleted;
+  }
+
+  getPatientMedicalHistory(patientId, page, limit) {
+    return this.get(
+      "medicalHistories",
+      `mh:patient:${patientId}:page:${page}:limit:${limit}`,
+    );
+  }
+
+  setPatientMedicalHistory(patientId, page, limit, data) {
+    return this.set(
+      "medicalHistories",
+      `mh:patient:${patientId}:page:${page}:limit:${limit}`,
+      data,
+    );
+  }
+
+  invalidatePatientMedicalHistory(patientId) {
+    return this.deletePattern(
+      "medicalHistories",
+      `^mh:patient:${patientId}:page:`,
+    );
+  }
+
+  getAllMedicalHistoriesPage(page, limit) {
+    return this.get("medicalHistories", `mh:all:page:${page}:limit:${limit}`);
+  }
+
+  setAllMedicalHistoriesPage(page, limit, data) {
+    return this.set(
+      "medicalHistories",
+      `mh:all:page:${page}:limit:${limit}`,
+      data,
+    );
+  }
+
+  invalidateAllMedicalHistoriesPages() {
+    return this.deletePattern("medicalHistories", `^mh:all:page:`);
+  }
+
+  getPatientTimeline(patientId, page, limit) {
+    return this.get(
+      "timelines",
+      `timeline:${patientId}:page:${page}:limit:${limit}`,
+    );
+  }
+
+  setPatientTimeline(patientId, page, limit, data) {
+    return this.set(
+      "timelines",
+      `timeline:${patientId}:page:${page}:limit:${limit}`,
+      data,
+    );
+  }
+
+  invalidatePatientTimeline(patientId) {
+    return this.deletePattern("timelines", `^timeline:${patientId}:page:`);
+  }
+
   setMultipleUsers(users) {
     let count = 0;
     users.forEach((user) => {
@@ -216,4 +381,3 @@ class CacheService {
 }
 
 module.exports = new CacheService();
-
