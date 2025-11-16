@@ -220,6 +220,7 @@ class DiagnosticRepository {
           },
         });
         return {
+          id: result.id,
           patient: result.medicalHistory.patient,
           doctor: doctor,
           documents: result.documents,
