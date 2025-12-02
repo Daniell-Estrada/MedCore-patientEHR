@@ -20,6 +20,12 @@ enum DiagnosticState {
   DELETED
 }
 
+enum PrescriptionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 model Patient {
   id              String            @id @default(uuid())
   medicalHistory  MedicalHistory?
@@ -109,7 +115,52 @@ model MedicalHistory {
   // Relations
   patient         Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
   diagnostics     Diagnostic[]
+  prescriptions   Prescription[]
 
   @@index([patientId])
   @@index([createdBy])
+}
+
+model Prescription {
+  id                String                @id @default(uuid())
+  medicalHistoryId  String
+  diagnosticId      String?
+  doctorId          String
+  patientId         String
+  prescriptionDate  DateTime              @default(now())
+  validUntil        DateTime?
+  status            PrescriptionStatus    @default(ACTIVE)
+  notes             String?
+  allergies         String[]              @default([])
+  
+  medicalHistory    MedicalHistory        @relation(fields: [medicalHistoryId], references: [id], onDelete: Cascade)
+  medications       PrescriptionMedication[]
+  
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@index([medicalHistoryId])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([prescriptionDate])
+}
+
+model PrescriptionMedication {
+  id                String        @id @default(uuid())
+  prescriptionId    String
+  medicationName    String
+  activeIngredient  String
+  dosage            String
+  frequency         String
+  duration          Int
+  durationType      String
+  instructions      String?
+  warnings          String?
+  
+  prescription      Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([prescriptionId])
 }

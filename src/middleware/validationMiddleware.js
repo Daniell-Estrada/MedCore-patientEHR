@@ -1,4 +1,16 @@
-const { body, validationResult, query } = require("express-validator");
+const { body, validationResult, query, param } = require("express-validator");
+
+/**
+ * Middleware to handle validation results
+ */
+
+const handleValidation = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  return next();
+};
 
 const sanitizeText = (field) =>
   body(field)
@@ -34,13 +46,47 @@ const validateAgeRange = body("age")
   .isInt({ min: 0, max: 100 })
   .withMessage("La edad debe estar entre 0 y 100 años");
 
-const handleValidation = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  return next();
-};
+const createPatientValidators = [
+  optionalText("userId"),
+  body("email")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .isEmail()
+    .withMessage(
+      "Email es requerido y debe ser válido si no se proporciona userId",
+    )
+    .normalizeEmail(),
+  body("fullname")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .escape()
+    .isLength({ min: 3 })
+    .withMessage(
+      "Nombre completo es requerido (mínimo 3 caracteres) si no se proporciona userId",
+    ),
+  body("identificacion")
+    .if((value, { req }) => !req.body.userId)
+    .trim()
+    .escape()
+    .matches(/^[A-Za-z0-9-_.]{5,50}$/)
+    .withMessage(
+      "Identificación es requerida y debe ser válida (5-50 caracteres alfanuméricos) si no se proporciona userId",
+    ),
+  body("date_of_birth")
+    .if((value, { req }) => !req.body.userId)
+    .isISO8601()
+    .withMessage(
+      "Fecha de nacimiento es requerida y debe ser ISO válida si no se proporciona userId",
+    )
+    .toDate(),
+  optionalText("phone")
+    .matches(/^[0-9+\-()\s]{6,20}$/)
+    .withMessage("Teléfono debe tener formato válido"),
+  optionalText("current_password")
+    .isLength({ min: 8 })
+    .withMessage("La contraseña debe tener al menos 8 caracteres"),
+  handleValidation,
+];
 
 const updatePatientValidators = [
   optionalText("fullname").isLength({ min: 3 }).withMessage("Nombre muy corto"),
@@ -124,62 +170,159 @@ const createMedicalHistoryValidators = [handleValidation];
 
 const updateMedicalHistoryValidators = [handleValidation];
 
-const createPatientValidators = [
-  optionalText("userId"),
-  body("email")
-    .if((value, { req }) => !req.body.userId)
+const createPrescriptionValidation = [
+  body("patientId")
+    .notEmpty()
+    .withMessage("Patient ID is required")
+    .isUUID()
+    .withMessage("Patient ID must be a valid UUID"),
+
+  body("diagnosticId")
+    .optional()
+    .isUUID()
+    .withMessage("Diagnostic ID must be a valid UUID"),
+
+  body("medications")
+    .isArray({ min: 1 })
+    .withMessage("At least one medication is required"),
+
+  body("medications.*.medicationName")
+    .notEmpty()
+    .withMessage("Medication name is required")
     .trim()
-    .isEmail()
-    .withMessage(
-      "Email es requerido y debe ser válido si no se proporciona userId",
-    )
-    .normalizeEmail(),
-  body("fullname")
-    .if((value, { req }) => !req.body.userId)
+    .escape(),
+
+  body("medications.*.activeIngredient")
+    .notEmpty()
+    .withMessage("Active ingredient is required")
     .trim()
-    .escape()
-    .isLength({ min: 3 })
+    .escape(),
+
+  body("medications.*.dosage")
+    .notEmpty()
+    .withMessage("Dosage is required")
+    .trim()
+    .escape(),
+
+  body("medications.*.frequency")
+    .notEmpty()
+    .withMessage("Frequency is required")
+    .trim()
+    .escape(),
+
+  body("medications.*.duration")
+    .isInt({ min: 1 })
+    .withMessage("Duration must be a positive integer"),
+
+  body("medications.*.durationType")
+    .notEmpty()
+    .withMessage("Duration type is required")
+    .isIn(["días", "semanas", "meses", "days", "weeks", "months"])
     .withMessage(
-      "Nombre completo es requerido (mínimo 3 caracteres) si no se proporciona userId",
+      "Duration type must be días, semanas, meses, days, weeks, or months",
     ),
-  body("identificacion")
-    .if((value, { req }) => !req.body.userId)
+
+  body("medications.*.instructions")
+    .optional()
+    .isString()
+    .withMessage("Instructions must be a string")
+    .trim(),
+
+  body("medications.*.warnings")
+    .optional()
+    .isString()
+    .withMessage("Warnings must be a string")
+    .trim(),
+
+  body("medications.*.medicationType")
+    .optional()
+    .isString()
+    .withMessage("Medication type must be a string")
     .trim()
-    .escape()
-    .matches(/^[A-Za-z0-9-_.]{5,50}$/)
-    .withMessage(
-      "Identificación es requerida y debe ser válida (5-50 caracteres alfanuméricos) si no se proporciona userId",
-    ),
-  body("date_of_birth")
-    .if((value, { req }) => !req.body.userId)
-    .isISO8601()
-    .withMessage(
-      "Fecha de nacimiento es requerida y debe ser ISO válida si no se proporciona userId",
-    )
-    .toDate(),
-  optionalText("phone")
-    .matches(/^[0-9+\-()\s]{6,20}$/)
-    .withMessage("Teléfono debe tener formato válido"),
-  optionalText("current_password")
-    .isLength({ min: 8 })
-    .withMessage("La contraseña debe tener al menos 8 caracteres"),
+    .escape(),
+
+  body("notes")
+    .optional()
+    .isString()
+    .withMessage("Notes must be a string")
+    .trim(),
+
+  body("allergies")
+    .optional()
+    .isArray()
+    .withMessage("Allergies must be an array"),
+
+  body("allergies.*")
+    .isString()
+    .withMessage("Each allergy must be a string")
+    .trim()
+    .escape(),
+
+  handleValidation,
+];
+
+const patientIdValidation = [
+  param("patientId")
+    .notEmpty()
+    .withMessage("Patient ID is required")
+    .isUUID()
+    .withMessage("Patient ID must be a valid UUID"),
+
+  handleValidation,
+];
+
+const prescriptionIdValidation = [
+  param("id")
+    .notEmpty()
+    .withMessage("Prescription ID is required")
+    .isUUID()
+    .withMessage("Prescription ID must be a valid UUID"),
+
+  handleValidation,
+];
+
+const updateStatusValidation = [
+  param("id")
+    .notEmpty()
+    .withMessage("Prescription ID is required")
+    .isUUID()
+    .withMessage("Prescription ID must be a valid UUID"),
+
+  body("status")
+    .notEmpty()
+    .withMessage("Status is required")
+    .isIn(["ACTIVE", "COMPLETED", "CANCELLED"])
+    .withMessage("Status must be ACTIVE, COMPLETED, or CANCELLED"),
+
+  handleValidation,
+];
+
+const paginationValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer"),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be between 1 and 100"),
+
   handleValidation,
 ];
 
 module.exports = {
-  sanitizeText,
-  optionalText,
-  validateEmail,
-  validateUUID,
-  validateDate,
-  validateAgeRange,
-  handleValidation,
   createPatientValidators,
   updatePatientValidators,
+  advancedSearchQueryValidators,
   createDiagnosticValidators,
   updateDiagnosticValidators,
   updateDiagnosticStateValidators,
-  advancedSearchQueryValidators,
   createMedicalHistoryValidators,
   updateMedicalHistoryValidators,
+  createPrescriptionValidation,
+  patientIdValidation,
+  prescriptionIdValidation,
+  updateStatusValidation,
+  paginationValidation,
 };
