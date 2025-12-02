@@ -2,15 +2,27 @@ const express = require("express");
 const router = express.Router();
 const { requireRoles } = require("../middleware/roleMiddleware");
 const {
+  createDiagnostic,
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
 } = require("../controllers/diagnosticController");
+const {
+  createDiagnosticValidators,
+} = require("../middleware/validationMiddleware");
+
+// Create a new diagnostic for a patient
+router.post(
+  "/patient/:patientId",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  createDiagnosticValidators,
+  createDiagnostic,
+);
 
 router.get(
-  "/:id",
+  "/predefined/list",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  getDiagnosticById,
+  getPredefinedDiagnostics,
 );
 
 router.get(
@@ -20,9 +32,9 @@ router.get(
 );
 
 router.get(
-  "/predefined/list",
+  "/:id",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  getPredefinedDiagnostics,
+  getDiagnosticById,
 );
 
 module.exports = router;

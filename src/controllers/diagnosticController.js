@@ -1,6 +1,39 @@
 const diagnosticRepository = require("../repositories/diagnosticRepository");
 
 /**
+ * Create a new diagnostic for a patient.
+ */
+const createDiagnostic = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const doctorId = req.user?.id;
+
+    if (!doctorId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
+    const diagnosticData = req.body;
+
+    const diagnostic = await diagnosticRepository.createDiagnostic(
+      patientId,
+      doctorId,
+      diagnosticData,
+    );
+
+    return res.status(201).json({
+      message: "Diagnóstico creado correctamente",
+      data: diagnostic,
+    });
+  } catch (error) {
+    console.error("Error creating diagnostic:", error);
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
  * Get a diagnostic by its ID.
  */
 const getDiagnosticById = async (req, res) => {
@@ -69,6 +102,7 @@ const getPredefinedDiagnostics = async (req, res) => {
 };
 
 module.exports = {
+  createDiagnostic,
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
