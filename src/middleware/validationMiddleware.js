@@ -166,6 +166,22 @@ const createPatientValidators = [
   handleValidation,
 ];
 
+const createPrescriptionValidators = [
+  validateUUID("patientId"),
+  sanitizeText("medicationName"),
+  sanitizeText("dosage"),
+  sanitizeText("frequency"),
+  body("duration")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("La duración debe ser un número entero positivo"),
+  optionalText("instructions"),
+  optionalText("medicationType"),
+  optionalText("notes"),
+  validateDate("startDate"),
+  handleValidation,
+];
+
 module.exports = {
   sanitizeText,
   optionalText,
@@ -182,4 +198,5 @@ module.exports = {
   advancedSearchQueryValidators,
   createMedicalHistoryValidators,
   updateMedicalHistoryValidators,
+  createPrescriptionValidators,
 };

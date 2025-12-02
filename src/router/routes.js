@@ -4,6 +4,7 @@ const patientRoutes = require("./patientRoutes");
 const documentRoutes = require("./documentRoutes");
 const medicalHistoryRoutes = require("./medicalHistoryRoutes");
 const diagnosticRoutes = require("./diagnosticRoutes");
+const prescriptionRoutes = require("./prescriptionRoutes");
 const { auditInterceptor } = require("../interceptors/auditInterceptor");
 const router = require("express").Router();
 
@@ -15,5 +16,6 @@ router.use("/documents", documentRoutes);
 router.use("/patients", patientRoutes);
 router.use("/diagnostics", diagnosticRoutes);
 router.use("/medical-history", medicalHistoryRoutes);
+router.use("/prescriptions", prescriptionRoutes);
 
 module.exports = router;

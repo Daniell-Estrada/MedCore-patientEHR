@@ -22,7 +22,9 @@ enum DiagnosticState {
 
 model Patient {
   id              String            @id @default(uuid())
+  allergies       String?           // JSON array of medication allergies
   medicalHistory  MedicalHistory?
+  prescriptions   Prescription[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -112,4 +114,30 @@ model MedicalHistory {
 
   @@index([patientId])
   @@index([createdBy])
+}
+
+model Prescription {
+  id                String    @id @default(uuid())
+  patientId         String
+  doctorId          String
+  medicationName    String
+  dosage            String
+  frequency         String
+  duration          Int       // Duration in days
+  instructions      String?
+  medicationType    String?   // Type of medication (e.g., antibiotic, analgesic)
+  startDate         DateTime  @default(now())
+  endDate           DateTime?
+  notes             String?
+  allergyChecked    Boolean   @default(false)
+  pdfPath           String?   // Path to generated PDF
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([startDate])
 }
