@@ -34,18 +34,22 @@ class PrescriptionRepository {
         const allergies = JSON.parse(patient.allergies);
         const medicationName = prescriptionData.medicationName.toLowerCase();
         
-        // Check if medication is in patient's allergy list
-        const hasAllergy = allergies.some(
-          (allergy) => allergy.toLowerCase().includes(medicationName) || 
-                       medicationName.includes(allergy.toLowerCase())
-        );
+        // Check if medication matches exactly or is part of allergy list
+        // Using exact match to avoid false positives
+        const hasAllergy = allergies.some((allergy) => {
+          const allergyLower = allergy.toLowerCase();
+          // Check for exact match or if medication name contains the full allergy name
+          return allergyLower === medicationName || 
+                 (medicationName.includes(allergyLower) && allergyLower.length >= 4);
+        });
 
         if (hasAllergy) {
           allergyWarning = `ADVERTENCIA: El paciente tiene alergia registrada a medicamentos similares a ${prescriptionData.medicationName}`;
         }
         allergyChecked = true;
       } catch (e) {
-        // If allergies is not valid JSON, continue without check
+        // If allergies is not valid JSON, log error and continue without check
+        console.error(`Error parsing patient allergies for patient ${patientId}:`, e.message);
         allergyChecked = false;
       }
     }

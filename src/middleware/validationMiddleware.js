@@ -178,7 +178,11 @@ const createPrescriptionValidators = [
   optionalText("instructions"),
   optionalText("medicationType"),
   optionalText("notes"),
-  validateDate("startDate"),
+  body("startDate")
+    .optional()
+    .isISO8601()
+    .withMessage("startDate debe ser una fecha ISO válida")
+    .toDate(),
   handleValidation,
 ];
 

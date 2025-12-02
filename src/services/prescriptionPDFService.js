@@ -1,6 +1,7 @@
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * Service for generating prescription PDFs
@@ -22,8 +23,8 @@ class PrescriptionPDFService {
           fs.mkdirSync(uploadsDir, { recursive: true });
         }
 
-        // Generate filename
-        const filename = `prescription_${prescription.id}_${Date.now()}.pdf`;
+        // Generate filename with UUID for security
+        const filename = `prescription_${uuidv4()}.pdf`;
         const filePath = path.join(uploadsDir, filename);
 
         // Create PDF document

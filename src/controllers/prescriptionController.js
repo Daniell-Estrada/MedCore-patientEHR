@@ -2,6 +2,7 @@ const prescriptionRepository = require("../repositories/prescriptionRepository")
 const prescriptionPDFService = require("../services/prescriptionPDFService");
 const securityService = require("../services/securityService");
 const prisma = require("../config/db/postgresql");
+const fs = require("fs");
 
 /**
  * Create a new prescription for a patient
@@ -131,7 +132,6 @@ const getPrescriptionPDF = async (req, res) => {
     }
 
     // Check if file exists
-    const fs = require("fs");
     if (!fs.existsSync(prescription.pdfPath)) {
       return res.status(404).json({
         message: "Archivo PDF no encontrado",
