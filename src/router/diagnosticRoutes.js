@@ -4,17 +4,8 @@ const { requireRoles } = require("../middleware/roleMiddleware");
 const {
   getDiagnosticById,
   listPatientDiagnostics,
-  createDiagnostic,
-  updateDiagnostic,
-  updateDiagnosticState,
-  deleteDiagnostic,
+  getPredefinedDiagnostics,
 } = require("../controllers/diagnosticController");
-const {
-  createDiagnosticValidators,
-  updateDiagnosticValidators,
-  updateDiagnosticStateValidators,
-} = require("../middleware/validationMiddleware");
-const { uploadMultiple } = require("../config/multer");
 
 router.get(
   "/:id",
@@ -28,32 +19,10 @@ router.get(
   listPatientDiagnostics,
 );
 
-router.post(
-  "/patient/:patientId",
+router.get(
+  "/predefined/list",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  uploadMultiple,
-  createDiagnosticValidators,
-  createDiagnostic,
-);
-
-router.patch(
-  "/:id",
-  requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  updateDiagnosticValidators,
-  updateDiagnostic,
-);
-
-router.patch(
-  "/:id/state",
-  requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  updateDiagnosticStateValidators,
-  updateDiagnosticState,
-);
-
-router.delete(
-  "/:id",
-  requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  deleteDiagnostic,
+  getPredefinedDiagnostics,
 );
 
 module.exports = router;

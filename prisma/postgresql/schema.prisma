@@ -164,3 +164,20 @@ model PrescriptionMedication {
 
   @@index([prescriptionId])
 }
+
+model PredefinedDiagnostic {
+  id                    String   @id @default(uuid())
+  code                  String   @unique
+  name                  String
+  description           String
+  commonSymptoms        String
+  recommendedTreatment  String
+  observations          String?
+  category              String
+  severity              String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([category])
+  @@index([severity])
+}
