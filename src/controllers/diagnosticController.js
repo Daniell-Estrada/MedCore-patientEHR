@@ -102,6 +102,26 @@ const getPredefinedDiagnostics = async (req, res) => {
 };
 
 /**
+ * Get a predefined diagnostic by its ID.
+ */
+const getPredefinedDiagnosticById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const diagnostic = await diagnosticRepository.getPredefinedDiagnosticById(id);
+    
+    return res.status(200).json({
+      message: "Diagnóstico predefinido obtenido correctamente",
+      data: diagnostic,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
  * Update the state of a diagnostic (soft delete/archive).
  */
 const updateDiagnosticState = async (req, res) => {
@@ -146,5 +166,6 @@ module.exports = {
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
+  getPredefinedDiagnosticById,
   updateDiagnosticState,
 };

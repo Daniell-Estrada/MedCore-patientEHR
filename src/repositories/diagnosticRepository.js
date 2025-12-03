@@ -199,6 +199,25 @@ class DiagnosticRepository {
   }
 
   /**
+   * Get a predefined diagnostic by its ID.
+   * @param {string} id - The predefined diagnostic ID
+   * @returns {object} The predefined diagnostic
+   */
+  async getPredefinedDiagnosticById(id) {
+    const diagnostic = await prisma.PredefinedDiagnostic.findUnique({
+      where: { id },
+    });
+
+    if (!diagnostic) {
+      const error = new Error("Diagnóstico predefinido no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    return diagnostic;
+  }
+
+  /**
    * Update the state of a diagnostic (soft delete/archive).
    * @param {string} id - The diagnostic ID
    * @param {string} state - The new state (ACTIVE, ARCHIVED, DELETED)

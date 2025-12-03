@@ -6,6 +6,7 @@ const {
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
+  getPredefinedDiagnosticById,
   updateDiagnosticState,
 } = require("../controllers/diagnosticController");
 const {
@@ -25,6 +26,12 @@ router.get(
   "/predefined/list",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
   getPredefinedDiagnostics,
+);
+
+router.get(
+  "/predefined/:id",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  getPredefinedDiagnosticById,
 );
 
 router.get(
