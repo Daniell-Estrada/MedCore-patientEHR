@@ -197,6 +197,51 @@ class DiagnosticRepository {
 
     return diagnostics;
   }
+
+  /**
+   * Update the state of a diagnostic (soft delete/archive).
+   * @param {string} id - The diagnostic ID
+   * @param {string} state - The new state (ACTIVE, ARCHIVED, DELETED)
+   * @returns {object} The updated diagnostic
+   */
+  async updateDiagnosticState(id, state) {
+    // Verify diagnostic exists
+    const existing = await prisma.Diagnostic.findUnique({
+      where: { id },
+      include: {
+        medicalHistory: {
+          select: { patientId: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      const error = new Error("Diagnóstico no encontrado");
+      error.status = 404;
+      throw error;
+    }
+
+    // Update the state
+    const diagnostic = await prisma.Diagnostic.update({
+      where: { id },
+      data: {
+        state,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Invalidate caches
+    const patientId = existing.medicalHistory?.patientId;
+    cacheService.invalidateDiagnostic(id);
+    if (patientId) {
+      cacheService.invalidateAllPatientDiagnostics(patientId);
+      cacheService.invalidatePatientMedicalHistory(patientId);
+      cacheService.invalidatePatientTimeline(patientId);
+    }
+    cacheService.invalidateAllMedicalHistoriesPages();
+
+    return diagnostic;
+  }
 }
 
 module.exports = new DiagnosticRepository();

@@ -6,9 +6,11 @@ const {
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
+  updateDiagnosticState,
 } = require("../controllers/diagnosticController");
 const {
   createDiagnosticValidators,
+  updateDiagnosticStateValidators,
 } = require("../middleware/validationMiddleware");
 
 // Create a new diagnostic for a patient
@@ -35,6 +37,14 @@ router.get(
   "/:id",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
   getDiagnosticById,
+);
+
+// Update diagnostic state (soft delete/archive)
+router.patch(
+  "/:id/state",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  updateDiagnosticStateValidators,
+  updateDiagnosticState,
 );
 
 module.exports = router;
