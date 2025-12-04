@@ -28,12 +28,6 @@ const validateEmail = body("email")
   .withMessage("Email inválido")
   .normalizeEmail();
 
-const validateUUID = (field) =>
-  body(field)
-    .optional()
-    .isUUID()
-    .withMessage(`${field} debe ser un UUID válido`);
-
 const validateDate = (field) =>
   body(field)
     .optional()
@@ -168,13 +162,12 @@ const updateDiagnosticStateValidators = [
 
 const createMedicalHistoryValidators = [handleValidation];
 
-const updateMedicalHistoryValidators = [handleValidation];
+const udateMedicalHistoryValidators = [handleValidation];
 
 const createPrescriptionValidation = [
   body("patientId")
     .notEmpty()
     .withMessage("Patient ID is required")
-    .isUUID()
     .withMessage("Patient ID must be a valid UUID"),
 
   body("diagnosticId")
@@ -265,7 +258,6 @@ const patientIdValidation = [
   param("patientId")
     .notEmpty()
     .withMessage("Patient ID is required")
-    .isUUID()
     .withMessage("Patient ID must be a valid UUID"),
 
   handleValidation,

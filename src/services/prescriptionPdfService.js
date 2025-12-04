@@ -49,7 +49,7 @@ class PrescriptionPdfService {
         doc
           .fontSize(11)
           .fillColor("#34495e")
-          .text(`Nombre: ${doctorInfo.name || "Dr. " + doctorInfo.username}`)
+          .text(`Nombre: ${doctorInfo.fullname}`)
           .text(`ID Médico: ${doctorInfo.id}`)
           .text(`Email: ${doctorInfo.email || "N/A"}`)
           .moveDown(1);
@@ -63,8 +63,8 @@ class PrescriptionPdfService {
         doc
           .fontSize(11)
           .fillColor("#34495e")
-          .text(`Nombre: ${patientInfo.name || patientInfo.username}`)
-          .text(`Documento: ${patientInfo.documentNumber || "N/A"}`)
+          .text(`Nombre: ${patientInfo.fullname}`)
+          .text(`Documento: ${patientInfo.identificacion || "N/A"}`)
           .text(`ID Paciente: ${patientInfo.id}`)
           .moveDown(0.5);
 
