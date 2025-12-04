@@ -110,8 +110,8 @@ class PrescriptionPdfService {
             .text(`   Dosificación: ${med.dosage}`)
             .text(`   Frecuencia: ${med.frequency}`)
             .text(
-              `   Duración: ${med.duration} ${med.durationType}${med.duration > 1 ? "s" : ""}`,
-            );
+                  `   Duración: ${med.duration || "N/A"} ${med.durationType || "días"}`,
+                );
 
           if (med.instructions) {
             doc
@@ -249,7 +249,9 @@ class PrescriptionPdfService {
             .text(
               `Emitida: ${formatDate(prescription.prescriptionDate)} | Estado: ${prescription.status || "N/A"}`,
             )
+            .text(`Nombre del Doctor: ${prescription.doctorInfo?.fullname || "N/A"}`)
             .text(`Doctor ID: ${prescription.doctorId}`)
+
             .text(`Válida hasta: ${formatDate(prescription.validUntil)}`)
             .moveDown(0.2);
 

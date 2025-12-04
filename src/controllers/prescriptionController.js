@@ -299,6 +299,8 @@ const getAllPrescriptionsPdfByPatient = async (req, res) => {
       prescription.doctorInfo = doctorInfo;
     }
 
+    console.log("Prescriptions found:", patientInfo);
+
     if (!patientInfo) {
       return res.status(404).json({ message: "Patient not found" });
     }
