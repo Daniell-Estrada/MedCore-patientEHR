@@ -4,6 +4,7 @@ const {
   getPrescriptionsByPatient,
   getActivePrescriptionsByPatient,
   getPrescriptionById,
+  getAllPrescriptionsPdfByPatient,
   downloadPrescriptionPdf,
   updatePrescriptionStatus,
 } = require("../controllers/prescriptionController");
@@ -29,6 +30,12 @@ router.get(
   "/patient/:patientId/active",
   patientIdValidation,
   getActivePrescriptionsByPatient,
+);
+
+router.get(
+  "/patient/:patientId/pdf",
+  patientIdValidation,
+  getAllPrescriptionsPdfByPatient,
 );
 
 router.get("/:id", prescriptionIdValidation, getPrescriptionById);

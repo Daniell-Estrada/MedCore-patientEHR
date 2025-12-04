@@ -74,6 +74,18 @@ class PrescriptionRepository {
     };
   }
 
+  async getAllPrescriptionsByPatientId(patientId) {
+    return await prisma.Prescription.findMany({
+      where: { patientId },
+      include: {
+        medications: true,
+      },
+      orderBy: {
+        prescriptionDate: "desc",
+      },
+    });
+  }
+
   async getPrescriptionById(id) {
     return await prisma.Prescription.findUnique({
       where: { id },

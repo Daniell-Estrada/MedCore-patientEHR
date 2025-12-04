@@ -182,6 +182,141 @@ class PrescriptionPdfService {
     });
   }
 
+  async generateAllPrescriptionsPdf(prescriptions, patientInfo) {
+    if (!Array.isArray(prescriptions) || prescriptions.length === 0) {
+      throw new Error("No prescriptions provided to generate PDF");
+    }
+
+    const formatDate = (value) =>
+      value ? new Date(value).toLocaleDateString("es-ES") : "N/A";
+
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: "A4", margin: 40 });
+        const chunks = [];
+
+        doc.on("data", (chunk) => chunks.push(chunk));
+        doc.on("end", () => resolve(Buffer.concat(chunks)));
+
+        doc
+          .fontSize(22)
+          .fillColor("#2c3e50")
+          .text("Historial de Prescripciones", { align: "center" })
+          .moveDown(0.5);
+
+        doc
+          .fontSize(10)
+          .fillColor("#7f8c8d")
+          .text(`Total de prescripciones: ${prescriptions.length}`, {
+            align: "center",
+          })
+          .moveDown(1);
+
+        doc
+          .fontSize(13)
+          .fillColor("#2c3e50")
+          .text("Información del Paciente", { underline: true })
+          .moveDown(0.4);
+
+        doc
+          .fontSize(11)
+          .fillColor("#34495e")
+          .text(`Nombre: ${patientInfo.fullname || "N/A"}`)
+          .text(`Documento: ${patientInfo.identificacion || "N/A"}`)
+          .text(`ID Paciente: ${patientInfo.id}`)
+          .moveDown(1);
+
+        doc
+          .moveTo(40, doc.y)
+          .lineTo(doc.page.width - 40, doc.y)
+          .stroke("#bdc3c7")
+          .moveDown(1);
+
+        prescriptions.forEach((prescription, index) => {
+          if (doc.y > doc.page.height - 120) {
+            doc.addPage();
+          }
+
+          doc
+            .fontSize(14)
+            .fillColor("#2c3e50")
+            .text(`Prescripción ${index + 1}`, { underline: true })
+            .moveDown(0.3);
+
+          doc
+            .fontSize(10)
+            .fillColor("#7f8c8d")
+            .text(
+              `Emitida: ${formatDate(prescription.prescriptionDate)} | Estado: ${prescription.status || "N/A"}`,
+            )
+            .text(`Doctor ID: ${prescription.doctorId}`)
+            .text(`Válida hasta: ${formatDate(prescription.validUntil)}`)
+            .moveDown(0.2);
+
+          if (prescription.allergies && prescription.allergies.length > 0) {
+            doc
+              .fontSize(10)
+              .fillColor("#e74c3c")
+              .text(`Alergias registradas: ${prescription.allergies.join(", ")}`)
+              .moveDown(0.2);
+          }
+
+          if (Array.isArray(prescription.medications)) {
+            prescription.medications.forEach((med, medIndex) => {
+              if (doc.y > doc.page.height - 80) {
+                doc.addPage();
+              }
+
+              doc
+                .fontSize(12)
+                .fillColor("#16a085")
+                .text(`${medIndex + 1}. ${med.medicationName}`)
+                .moveDown(0.2);
+
+              doc
+                .fontSize(10)
+                .fillColor("#34495e")
+                .text(`   Principio Activo: ${med.activeIngredient || "N/A"}`)
+                .text(`   Dosificación: ${med.dosage || "N/A"}`)
+                .text(`   Frecuencia: ${med.frequency || "N/A"}`)
+                .text(
+                  `   Duración: ${med.duration || "N/A"} ${med.durationType || "días"}`,
+                );
+
+              if (med.instructions) {
+                doc.fillColor("#7f8c8d").text(`   Instrucciones: ${med.instructions}`);
+              }
+
+              if (med.warnings) {
+                doc.fillColor("#e74c3c").text(`   Advertencias: ${med.warnings}`);
+              }
+
+              doc.moveDown(0.4);
+            });
+          }
+
+          if (prescription.notes) {
+            doc
+              .fontSize(10)
+              .fillColor("#2c3e50")
+              .text(`Notas: ${prescription.notes}`)
+              .moveDown(0.3);
+          }
+
+          doc
+            .moveTo(40, doc.y)
+            .lineTo(doc.page.width - 40, doc.y)
+            .stroke("#ecf0f1")
+            .moveDown(0.6);
+        });
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   async savePrescriptionPdf(prescription, patientInfo, doctorInfo, outputPath) {
     const pdfBuffer = await this.generatePrescriptionPdf(
       prescription,

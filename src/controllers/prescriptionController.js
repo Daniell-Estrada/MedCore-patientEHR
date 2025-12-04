@@ -276,6 +276,68 @@ const getPrescriptionById = async (req, res) => {
 };
 
 /**
+ * Download all prescriptions as PDF for a patient
+ */
+
+const getAllPrescriptionsPdfByPatient = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({ message: "Patient ID is required" });
+    }
+
+    const [patientInfo, prescriptions] = await Promise.all([
+      securityService.getUserById(patientId),
+      prescriptionRepository.getAllPrescriptionsByPatientId(patientId),
+    ]);
+
+    for (const prescription of prescriptions) {
+      const doctorInfo = await securityService.getUserById(
+        prescription.doctorId,
+      );
+      prescription.doctorInfo = doctorInfo;
+    }
+
+    if (!patientInfo) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    if (!prescriptions || prescriptions.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No prescriptions found for this patient" });
+    }
+
+    const pdfBuffer = await prescriptionPdfService.generateAllPrescriptionsPdf(
+      prescriptions,
+      patientInfo,
+    );
+
+    const filenameBase =
+      (patientInfo.fullname || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "") || patientId;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=all-prescriptions-${filenameBase}.pdf`,
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
+    res.setHeader("Cache-Control", "no-store");
+
+    return res.status(200).send(pdfBuffer);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error generating PDF",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Download prescription as PDF
  */
 const downloadPrescriptionPdf = async (req, res) => {
@@ -386,6 +448,7 @@ module.exports = {
   createPrescription,
   getPrescriptionsByPatient,
   getPrescriptionById,
+  getAllPrescriptionsPdfByPatient,
   downloadPrescriptionPdf,
   updatePrescriptionStatus,
   getActivePrescriptionsByPatient,
