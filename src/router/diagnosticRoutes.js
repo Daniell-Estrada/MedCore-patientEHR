@@ -2,15 +2,36 @@ const express = require("express");
 const router = express.Router();
 const { requireRoles } = require("../middleware/roleMiddleware");
 const {
+  createDiagnostic,
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
+  getPredefinedDiagnosticById,
+  updateDiagnosticState,
 } = require("../controllers/diagnosticController");
+const {
+  createDiagnosticValidators,
+  updateDiagnosticStateValidators,
+} = require("../middleware/validationMiddleware");
+
+// Create a new diagnostic for a patient
+router.post(
+  "/patient/:patientId",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  createDiagnosticValidators,
+  createDiagnostic,
+);
 
 router.get(
-  "/:id",
+  "/predefined/list",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  getDiagnosticById,
+  getPredefinedDiagnostics,
+);
+
+router.get(
+  "/predefined/:id",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  getPredefinedDiagnosticById,
 );
 
 router.get(
@@ -20,9 +41,17 @@ router.get(
 );
 
 router.get(
-  "/predefined/list",
+  "/:id",
   requireRoles(["MEDICO", "ADMINISTRADOR"]),
-  getPredefinedDiagnostics,
+  getDiagnosticById,
+);
+
+// Update diagnostic state (soft delete/archive)
+router.patch(
+  "/:id/state",
+  requireRoles(["MEDICO", "ADMINISTRADOR"]),
+  updateDiagnosticStateValidators,
+  updateDiagnosticState,
 );
 
 module.exports = router;

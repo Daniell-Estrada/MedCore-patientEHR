@@ -1,6 +1,39 @@
 const diagnosticRepository = require("../repositories/diagnosticRepository");
 
 /**
+ * Create a new diagnostic for a patient.
+ */
+const createDiagnostic = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const doctorId = req.user?.id;
+
+    if (!doctorId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
+    const diagnosticData = req.body;
+
+    const diagnostic = await diagnosticRepository.createDiagnostic(
+      patientId,
+      doctorId,
+      diagnosticData,
+    );
+
+    return res.status(201).json({
+      message: "Diagnóstico creado correctamente",
+      data: diagnostic,
+    });
+  } catch (error) {
+    console.error("Error creating diagnostic:", error);
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
  * Get a diagnostic by its ID.
  */
 const getDiagnosticById = async (req, res) => {
@@ -68,8 +101,71 @@ const getPredefinedDiagnostics = async (req, res) => {
   }
 };
 
+/**
+ * Get a predefined diagnostic by its ID.
+ */
+const getPredefinedDiagnosticById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const diagnostic = await diagnosticRepository.getPredefinedDiagnosticById(id);
+    
+    return res.status(200).json({
+      message: "Diagnóstico predefinido obtenido correctamente",
+      data: diagnostic,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+/**
+ * Update the state of a diagnostic (soft delete/archive).
+ */
+const updateDiagnosticState = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { state } = req.body;
+
+    const validStates = ["ACTIVE", "ARCHIVED", "DELETED"];
+    if (!validStates.includes(state)) {
+      return res.status(400).json({
+        message: "Estado inválido",
+        validStates,
+      });
+    }
+
+    const diagnostic = await diagnosticRepository.updateDiagnosticState(
+      id,
+      state,
+    );
+
+    const messages = {
+      ACTIVE: "Diagnóstico activado correctamente",
+      ARCHIVED: "Diagnóstico archivado correctamente",
+      DELETED: "Diagnóstico eliminado correctamente",
+    };
+
+    return res.status(200).json({
+      message: messages[state],
+      data: diagnostic,
+    });
+  } catch (error) {
+    console.error("Error updating diagnostic state:", error);
+    if (error.status === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
 module.exports = {
+  createDiagnostic,
   getDiagnosticById,
   listPatientDiagnostics,
   getPredefinedDiagnostics,
+  getPredefinedDiagnosticById,
+  updateDiagnosticState,
 };
