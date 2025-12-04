@@ -162,7 +162,7 @@ const updateDiagnosticStateValidators = [
 
 const createMedicalHistoryValidators = [handleValidation];
 
-const udateMedicalHistoryValidators = [handleValidation];
+const updateMedicalHistoryValidators = [handleValidation];
 
 const createPrescriptionValidation = [
   body("patientId")
